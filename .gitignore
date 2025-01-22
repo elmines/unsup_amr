@@ -1,0 +1,10 @@
+
+*.pyc
+
+# IDE files
+.idea/
+.vscode/
+
+# Prefixes Ethan likes to use for junk files
+ethan*
+scrap*

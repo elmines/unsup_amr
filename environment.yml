@@ -1,0 +1,12 @@
+name: unsup_amr
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+dependencies:
+  - python>=3.10
+  - pip
+
+  # Need this for jupyter notebooks
+  - ipykernel
+  - pytorch
