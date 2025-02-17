@@ -7,7 +7,7 @@ from tqdm import tqdm
 from transformers import T5Tokenizer
 from datasets import load_dataset
 # Local
-from unsupamr.constants import EUROPARL_URI, T5_SEP, DEFAULT_SEQ_MODEL
+from .constants import EUROPARL_URI, T5_SEP, DEFAULT_SEQ_MODEL
 
 def main(raw_args=None):
     DATASET_SUBSETS = ["de-en", "en-es", "de-es"]
@@ -32,8 +32,6 @@ def main(raw_args=None):
     multiling_ids = set()
     for subset in DATASET_SUBSETS:
         ds = load_dataset(path=EUROPARL_URI, name=subset)['train']['translation']
-        ds = ds[:10]
-        # ds = list(map(lambda s: s['translation'], ds))
         for sample in tqdm(ds, desc=f"EuroParl {subset}"):
             if "en" in sample:
                 sample_ids = tokenizer(sample['en'])['input_ids']
