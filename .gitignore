@@ -5,6 +5,8 @@
 .idea/
 .vscode/
 
+*.json
+
 # Prefixes Ethan likes to use for junk files
 ethan*
 scrap*

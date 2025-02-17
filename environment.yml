@@ -7,6 +7,16 @@ dependencies:
   - python>=3.10
   - pip
 
+  - transformers
+  - datasets
+  - pytorch
+
+  # Need this for t5
+  - protobuf
+  - sentencepiece
+
   # Need this for jupyter notebooks
   - ipykernel
-  - pytorch
+
+  # Need this for progress bar
+  - ipywidgets
