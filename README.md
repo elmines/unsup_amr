@@ -25,7 +25,9 @@ File Format:
 		{
 			"token": "<str, user readable version of the token>",
 			"id": "<int, integer id for the token under the expanded vocabulary>",
-			"embed": "<int or null, integer id for a token from the existing vocbulary>"
+			"embed": "<int or null, integer id for a token from the existing vocbulary>",
+			"type": "<string, type of token (arg, frame, node label, etc.)>",
+			"args": "<List[string], arguments this symbol takes if its type == 'frame'"
 		}
 	]
 }
