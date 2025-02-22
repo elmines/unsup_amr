@@ -85,6 +85,6 @@ def amr_preprocess(amr_version, data_dir):
         print(tokenized)
 
 if __name__ == "__main__":
-
+    pass
     # amr_preprocess(amr_version="3.0", data_dir="./amr_annotation_3.0_LDC2020T02")    
     # amr_preprocess(amr_version="2.0", data_dir="./amr_2-four_translations_LDC2020T07")

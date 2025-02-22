@@ -19,4 +19,5 @@ dependencies:
   - ipykernel
 
   # Need this for progress bar
+  - tqdm
   - ipywidgets
