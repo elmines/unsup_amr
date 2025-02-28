@@ -22,11 +22,21 @@ class EuroparlPreprocessor:
         - target_lang (str): The language of the output sentences (e.g., "es").
         """
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+        lang_datamap = {
+            ("en", "de") : "de-en",
+            ("de", "en") : "de-en",
+            ("es", "de") : "de-es",
+            ("de", "es") : "de-es",
+            ("en", "es") : "en-es",
+            ("es", "en") : "es-en",
+        }
+        data_subset = lang_datamap[source_lang, target_lang]
         
         if sample_subset:
-            self.dataset = load_dataset("Helsinki-NLP/europarl", f"{source_lang}-{target_lang}")['train'].select(range(5000))  # Sample subset
+            self.dataset = load_dataset("Helsinki-NLP/europarl", data_subset)['train'].select(range(5000))  # Sample subset
         else:
-            self.dataset = load_dataset("Helsinki-NLP/europarl", f"{source_lang}-{target_lang}")['train']  # Full Dataset
+            self.dataset = load_dataset("Helsinki-NLP/europarl", data_subset)['train']  # Full Dataset
             
         self.source_lang = source_lang
         self.target_lang = target_lang

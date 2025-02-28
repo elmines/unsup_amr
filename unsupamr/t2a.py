@@ -8,7 +8,7 @@ from transformers.models.t5.modeling_t5 import T5Stack
 # Local
 from .embeddings import mult_embedding_lookup
 from .next_tokens import NextTokens
-
+from .utils import VocabExt
 
 class T2A(torch.nn.Module):
     """
@@ -19,6 +19,7 @@ class T2A(torch.nn.Module):
 
     def __init__(self,
                  pretrained: T5ForConditionalGeneration,
+                 vocab_ext: VocabExt,
                  temperature: float = 1.):
         super().__init__()
         self.config = pretrained.config
@@ -26,10 +27,13 @@ class T2A(torch.nn.Module):
         self.eos_token_id: int = self.config.eos_token_id
         self.encoder = pretrained.encoder
         self.decoder = pretrained.decoder
+        self.embeddings = self.encoder.get_input_embeddings()
         self.lm_head = pretrained.lm_head
+        self.vocab_ext = vocab_ext
         self.temperature = temperature
 
-        pretrained.generate
+        assert self.encoder.get_input_embeddings() is self.decoder.get_input_embeddings()
+
 
 
     def forward(self,
@@ -43,7 +47,7 @@ class T2A(torch.nn.Module):
 
         # The decoder is used to getting padding as its first token
         pad_ids = torch.full([n_samples, 1], fill_value=self.pad_token_id, device=input_ids.device)
-        embeddings = self.expanded_embeddings(pad_ids)
+        embeddings = self.embeddings(pad_ids)
 
         trackers = [NextTokens(self.vocab_ext, self.pad_token_id, self.eos_token_id) for _ in range(n_samples)]
 
@@ -80,7 +84,7 @@ class T2A(torch.nn.Module):
                 for (pred, tracker) in zip(preds, trackers):
                     tracker.record(int(pred))
                 is_finished = torch.all(torch.logical_or(preds == self.eos_token_id, preds == self.pad_token_id))
-            new_embeddings = mult_embedding_lookup(probs, self.expanded_embeddings)
+            new_embeddings = mult_embedding_lookup(probs, self.embeddings)
             embeddings = torch.concatenate([embeddings, torch.unsqueeze(new_embeddings, 1)], dim=1)
 
             if is_finished:

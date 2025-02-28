@@ -8,9 +8,9 @@ from .constants import DEFAULT_SEQ_MODEL
 class EuroParlDataModule(L.LightningDataModule):
 
     def __init__(self,
+                 source_lang: str,
+                 target_lang: str,
                  pretrained_model: str = DEFAULT_SEQ_MODEL,
-                 source_lang: str = 'en',
-                 target_lang: str = 'es',
                  batch_size: int = 4):
         super().__init__()
         self.save_hyperparameters()

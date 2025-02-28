@@ -3,6 +3,7 @@
 # 3rd Party
 import lightning as L
 from transformers import T5ForConditionalGeneration
+import torch
 # Local
 from .t2a import T2A
 from .constants import DEFAULT_SEQ_MODEL
@@ -23,11 +24,14 @@ class TrainingMod(L.LightningModule):
         self.embeddings = expand_embedding(pretrained_a.get_input_embeddings(), vocab_ext)
         pretrained_a.set_input_embeddings(self.embeddings)
         pretrained_a.lm_head = expand_lm_head(pretrained_a.lm_head, vocab_ext)
-        self.t2a = T2A(pretrained_a, temperature=temperature)
+        self.t2a = T2A(pretrained_a, vocab_ext, temperature=temperature)
 
         self.a2t = T5ForConditionalGeneration.from_pretrained(pretrained_model)
-        self.a2t.set_input_embeddings(self.mbeddings)
+        self.a2t.set_input_embeddings(self.embeddings)
         self.a2t.lm_head = expand_lm_head(self.a2t.lm_head, vocab_ext)
+
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.parameters(), lr=1e-4)
 
     def training_step(self, batch, batch_idx):
         prob_history, pred_attention_mask = self.t2a(

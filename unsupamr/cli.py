@@ -10,7 +10,7 @@ class CustomCLI(LightningCLI):
     def add_arguments_to_parser(self, parser):
         parser.add_argument("--pretrained_model", default=DEFAULT_SEQ_MODEL)
         parser.link_arguments("pretrained_model", "model.pretrained_model")
-        parser.link_arguments("pretrained_model", "data.tokenizer")
+        parser.link_arguments("pretrained_model", "data.pretrained_model")
 
 def cli_main(**cli_kwargs):
 
@@ -28,12 +28,13 @@ def cli_main(**cli_kwargs):
 
     return CustomCLI(
         model_class=TrainingMod, subclass_mode_model=False,
-        model_class=EuroParlDataModule, subclass_mode_data=False,
+        datamodule_class=EuroParlDataModule, subclass_mode_data=False,
         trainer_defaults={
             "max_epochs": 10,
             "callbacks": [
                 model_callback,
                 early_stopping_callback
             ]
-        }
+        },
+        **cli_kwargs
     )
