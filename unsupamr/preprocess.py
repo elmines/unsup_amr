@@ -3,6 +3,8 @@ from transformers import AutoTokenizer, PreTrainedTokenizerFast
 import torch
 from torch.utils.data import Dataset, DataLoader
 from typing import List, Dict
+# Local
+from .constants import DEFAULT_SEQ_MODEL
 
 class EuroparlPreprocessor:
     """
@@ -11,7 +13,7 @@ class EuroparlPreprocessor:
     - Tokenizes text
     - Applies padding and truncation
     """
-    def __init__(self, model_name="bert-base-multilingual-cased", source_lang="en", target_lang="es", sample_subset=False):
+    def __init__(self, model_name=DEFAULT_SEQ_MODEL, source_lang="en", target_lang="es", sample_subset=False):
         """
         Initialize with model name and source/target languages.
         Args:
@@ -79,7 +81,7 @@ class EuroparlTranslationDataset(Dataset):
             "target_ids": torch.tensor(sample["target_ids"]).squeeze(0),
         }
 
-def preprocess_europarl(model_name="bert-base-multilingual-cased", source_lang="en", target_lang="es", batch_size=32, sample_subset=False):
+def preprocess_europarl(model_name=DEFAULT_SEQ_MODEL, source_lang="en", target_lang="es", batch_size=32, sample_subset=False):
     """
     Run the Europarl preprocessing, tokenization, and DataLoader creation.
     
