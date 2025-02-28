@@ -33,4 +33,4 @@ class NextTokens:
         - Divyam's code will only consider a sequence 'finished' if it ends with padding or eos
         """
         # Just a pass-through for now
-        return 0
+        return torch.zeros([1], dtype=torch.long)

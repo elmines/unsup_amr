@@ -69,10 +69,10 @@ class T2A(torch.nn.Module):
             )
             past_key_values = decoder_outputs.past_key_values
 
-            sequence_output = decoder_outputs.last_hidden_state
+            sequence_output = torch.squeeze(decoder_outputs.last_hidden_state[:, -1]) # Project just the most recent hidden state
             raw_logits = self.lm_head(sequence_output)
 
-            masks = torch.stack([t.next_tokens() for t in trackers], dim=0)
+            masks = torch.stack([t.next_tokens() for t in trackers], dim=0).to(raw_logits.device)
             masked_logits = raw_logits + masks
             scaled_logits = masked_logits / self.temperature
             probs = torch.nn.functional.softmax(scaled_logits, dim=-1)
