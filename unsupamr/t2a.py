@@ -4,8 +4,8 @@ from typing import Tuple
 import torch
 from transformers import MT5ForConditionalGeneration
 from transformers.cache_utils import DynamicCache, EncoderDecoderCache
-from transformers.models.t5.modeling_t5 import T5Stack
 # Local
+from .constants import DEFAULT_MAX_GRAPH_SIZE
 from .embeddings import mult_embedding_lookup
 from .next_tokens import NextTokens
 from .utils import VocabExt
@@ -15,12 +15,11 @@ class T2A(torch.nn.Module):
     Our Text-to-AMR module, also called our 'Encoder'.
     """
 
-    MAX_ITERATIONS = 32
-
     def __init__(self,
                  pretrained: MT5ForConditionalGeneration,
                  vocab_ext: VocabExt,
-                 temperature: float = 1.):
+                 temperature: float = 1.,
+                 max_iterations: int = DEFAULT_MAX_GRAPH_SIZE):
         super().__init__()
         self.config = pretrained.config
         self.pad_token_id: int = self.config.pad_token_id
@@ -31,6 +30,7 @@ class T2A(torch.nn.Module):
         self.lm_head = pretrained.lm_head
         self.vocab_ext = vocab_ext
         self.temperature = temperature
+        self.max_iterations = max_iterations
 
         assert self.encoder.get_input_embeddings() is self.decoder.get_input_embeddings()
 
@@ -56,7 +56,7 @@ class T2A(torch.nn.Module):
 
         past_key_values = EncoderDecoderCache(DynamicCache(), DynamicCache())
 
-        for _ in range(T2A.MAX_ITERATIONS):
+        for _ in range(self.max_iterations):
 
             # We shouldn't need a causal attention mask here.
             # The decoder has no future tokens to predict

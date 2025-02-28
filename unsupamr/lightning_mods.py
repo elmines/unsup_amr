@@ -6,7 +6,7 @@ from transformers import MT5ForConditionalGeneration
 import torch
 # Local
 from .t2a import T2A
-from .constants import DEFAULT_SEQ_MODEL
+from .constants import DEFAULT_SEQ_MODEL, DEFAULT_MAX_GRAPH_SIZE
 from .embeddings import expand_embedding, expand_lm_head, mult_embedding_lookup
 from .utils import load_vocab
 
@@ -15,7 +15,8 @@ class TrainingMod(L.LightningModule):
     def __init__(self,
                  vocab_path: str,
                  pretrained_model: str = DEFAULT_SEQ_MODEL,
-                 temperature: float = 1.):
+                 temperature: float = 1.,
+                 max_graph_size: int = DEFAULT_MAX_GRAPH_SIZE):
         super().__init__()
         self.save_hyperparameters()
 
@@ -24,7 +25,7 @@ class TrainingMod(L.LightningModule):
         self.embeddings = expand_embedding(pretrained_a.get_input_embeddings(), vocab_ext)
         pretrained_a.set_input_embeddings(self.embeddings)
         pretrained_a.lm_head = expand_lm_head(pretrained_a.lm_head, vocab_ext)
-        self.t2a = T2A(pretrained_a, vocab_ext, temperature=temperature)
+        self.t2a = T2A(pretrained_a, vocab_ext, temperature=temperature, max_iterations=max_graph_size)
 
         self.a2t = MT5ForConditionalGeneration.from_pretrained(pretrained_model)
         self.a2t.set_input_embeddings(self.embeddings)

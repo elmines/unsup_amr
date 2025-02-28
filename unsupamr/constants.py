@@ -22,6 +22,8 @@ class AmrToken(enum.Enum):
 
 DEFAULT_SEQ_MODEL = "google/mt5-small"
 
+DEFAULT_MAX_GRAPH_SIZE = 64
+
 EUROPARL_URI = "Helsinki-NLP/europarl"
 
 T5_SEP = (b'\xe2\x96\x81').decode()
