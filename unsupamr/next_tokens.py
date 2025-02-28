@@ -3,7 +3,7 @@ from typing import List
 # 3rd Party
 import torch
 # Local
-from .vocab import VocabExt
+from .utils import VocabExt
 
 class NextTokens:
 

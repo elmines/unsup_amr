@@ -7,7 +7,7 @@ from transformers import T5ForConditionalGeneration
 from .t2a import T2A
 from .constants import DEFAULT_SEQ_MODEL
 from .embeddings import expand_embedding, expand_lm_head, mult_embedding_lookup
-from .vocab import load_vocab
+from .utils import load_vocab
 
 
 class TrainingMod(L.LightningModule):

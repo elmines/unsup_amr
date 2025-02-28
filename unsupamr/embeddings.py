@@ -2,7 +2,7 @@
 # 3rd Party
 import torch
 # Local
-from .vocab import VocabExt
+from .utils import VocabExt
 
 def expand_lm_head(head: torch.nn.Linear, vocab: VocabExt) -> torch.nn.Linear:
     """
