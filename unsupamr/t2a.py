@@ -85,7 +85,7 @@ class T2A(torch.nn.Module):
                     tracker.record(int(pred))
                 is_finished = torch.all(torch.logical_or(preds == self.eos_token_id, preds == self.pad_token_id))
             new_embeddings = mult_embedding_lookup(probs, self.embeddings)
-            embeddings = torch.concatenate([embeddings, torch.unsqueeze(new_embeddings, 1)], dim=1)
+            embeddings = torch.unsqueeze(new_embeddings, dim=-2)
 
             if is_finished:
                 break
