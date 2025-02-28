@@ -3,6 +3,7 @@ from typing import Tuple
 # 3rd Party
 import torch
 from transformers import T5ForConditionalGeneration
+from transformers.cache_utils import DynamicCache, EncoderDecoderCache
 from transformers.models.t5.modeling_t5 import T5Stack
 # Local
 from .embeddings import mult_embedding_lookup
@@ -25,6 +26,7 @@ class T2A(torch.nn.Module):
         self.eos_token_id: int = self.config.eos_token_id
         self.encoder = pretrained.encoder
         self.decoder = pretrained.decoder
+        self.lm_head = pretrained.lm_head
         self.temperature = temperature
 
         pretrained.generate
@@ -37,7 +39,7 @@ class T2A(torch.nn.Module):
         n_samples = input_ids.shape[0]
 
         encoder_outputs = self.encoder(input_ids=input_ids, attention_mask=attention_mask)
-        hidden_states = encoder_outputs[0]
+        encoder_hidden_states = encoder_outputs[0]
 
         # The decoder is used to getting padding as its first token
         pad_ids = torch.full([n_samples, 1], fill_value=self.pad_token_id, device=input_ids.device)
@@ -48,22 +50,28 @@ class T2A(torch.nn.Module):
         prob_history = []
         pred_history = []
 
+        past_key_values = EncoderDecoderCache(DynamicCache(), DynamicCache())
+
         for _ in range(T2A.MAX_ITERATIONS):
 
             # We shouldn't need a causal attention mask here.
             # The decoder has no future tokens to predict
             decoder_outputs = self.decoder(
                 inputs_embeds=embeddings,
-                encoder_hidden_states=hidden_states,
+                encoder_hidden_states=encoder_hidden_states,
                 encoder_attention_mask=attention_mask,
+                past_key_values=past_key_values,
+                use_cache=True
             )
-            sequence_output = decoder_outputs[0]
+            past_key_values = decoder_outputs.past_key_values
+
+            sequence_output = decoder_outputs.last_hidden_state
+            raw_logits = self.lm_head(sequence_output)
 
             masks = torch.stack([t.next_tokens() for t in trackers], dim=0)
-            raw_logits = self.lm_head(sequence_output)
             masked_logits = raw_logits + masks
             scaled_logits = masked_logits / self.temperature
-            probs = torch.softmax(scaled_logits, dim=-1)
+            probs = torch.nn.functional.softmax(scaled_logits, dim=-1)
             prob_history.append(probs)
 
             with torch.no_grad():
