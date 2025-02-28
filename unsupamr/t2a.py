@@ -2,7 +2,7 @@
 from typing import Tuple
 # 3rd Party
 import torch
-from transformers import T5ForConditionalGeneration
+from transformers import MT5ForConditionalGeneration
 from transformers.cache_utils import DynamicCache, EncoderDecoderCache
 from transformers.models.t5.modeling_t5 import T5Stack
 # Local
@@ -15,10 +15,10 @@ class T2A(torch.nn.Module):
     Our Text-to-AMR module, also called our 'Encoder'.
     """
 
-    MAX_ITERATIONS = 128
+    MAX_ITERATIONS = 32
 
     def __init__(self,
-                 pretrained: T5ForConditionalGeneration,
+                 pretrained: MT5ForConditionalGeneration,
                  vocab_ext: VocabExt,
                  temperature: float = 1.):
         super().__init__()

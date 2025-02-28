@@ -2,7 +2,7 @@
 
 # 3rd Party
 import lightning as L
-from transformers import T5ForConditionalGeneration
+from transformers import MT5ForConditionalGeneration
 import torch
 # Local
 from .t2a import T2A
@@ -20,13 +20,13 @@ class TrainingMod(L.LightningModule):
         self.save_hyperparameters()
 
         vocab_ext = load_vocab(vocab_path)
-        pretrained_a = T5ForConditionalGeneration.from_pretrained(pretrained_model)
+        pretrained_a = MT5ForConditionalGeneration.from_pretrained(pretrained_model)
         self.embeddings = expand_embedding(pretrained_a.get_input_embeddings(), vocab_ext)
         pretrained_a.set_input_embeddings(self.embeddings)
         pretrained_a.lm_head = expand_lm_head(pretrained_a.lm_head, vocab_ext)
         self.t2a = T2A(pretrained_a, vocab_ext, temperature=temperature)
 
-        self.a2t = T5ForConditionalGeneration.from_pretrained(pretrained_model)
+        self.a2t = MT5ForConditionalGeneration.from_pretrained(pretrained_model)
         self.a2t.set_input_embeddings(self.embeddings)
         self.a2t.lm_head = expand_lm_head(self.a2t.lm_head, vocab_ext)
 
@@ -40,7 +40,7 @@ class TrainingMod(L.LightningModule):
         )
         embeddings = mult_embedding_lookup(prob_history, self.embeddings)
 
-        output = self.a2t(input_embeds=embeddings,
+        output = self.a2t(inputs_embeds=embeddings,
                           attention_mask=pred_attention_mask,
                           labels=batch['target_ids'])
         loss = output.loss
