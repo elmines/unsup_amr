@@ -17,7 +17,4 @@ def expand_embedding(embedding: torch.nn.Embedding, vocab: VocabExt) -> torch.nn
     return embedding
 
 def mult_embedding_lookup(prob_dists: torch.Tensor, embedding: torch.nn.Embedding):
-    """
-    TODO: @Ravi
-    """
     return prob_dists @ embedding.weight

@@ -11,7 +11,8 @@ class EuroParlDataModule(L.LightningDataModule):
                  source_lang: str,
                  target_lang: str,
                  pretrained_model: str = DEFAULT_SEQ_MODEL,
-                 batch_size: int = 4):
+                 batch_size: int = 4,
+                 debug_subset: bool = False):
         super().__init__()
         self.save_hyperparameters()
 
@@ -26,7 +27,7 @@ class EuroParlDataModule(L.LightningDataModule):
         preprocessor = EuroparlPreprocessor(model_name=self.hparams.pretrained_model,
                                             source_lang=self.hparams.source_lang,
                                             target_lang=self.hparams.target_lang,
-                                            sample_subset=True) # TODO: Set to False when done debugging
+                                            sample_subset=self.hparams.debug_subset)
         tokenized_dataset = preprocessor.get_tokenized_dataset()
     
         # Create dataset and dataloader
