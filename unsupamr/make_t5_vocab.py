@@ -8,7 +8,7 @@ from tqdm import tqdm
 from transformers import T5Tokenizer
 from datasets import load_dataset
 # Local
-from .constants import EUROPARL_URI, T5_SEP, DEFAULT_SEQ_MODEL, AmrToken
+from .constants import EUROPARL_URI, T5_SEP, DEFAULT_SEQ_MODEL, AmrCategory
 
 def main(raw_args=None):
     DATASET_SUBSETS = ["de-en", "en-es", "de-es"]
@@ -48,13 +48,13 @@ def main(raw_args=None):
         lemma = res.group(2)
         args = arg_patt.findall(l)
         arg_set.update(args)
-        amr_tuples.append((frame_name, get_ids(lemma), AmrToken.FRAME, args))
+        amr_tuples.append((frame_name, get_ids(lemma), AmrCategory.FRAME, args))
 
     for arg_name in sorted(arg_set):
         arg_name = ":" + arg_name
         inv_name = arg_name + "-of"
-        amr_tuples.append((arg_name, None, AmrToken.ARG, None))
-        amr_tuples.append((inv_name, None, AmrToken.INV_ARG, None))
+        amr_tuples.append((arg_name, None, AmrCategory.ARG, None))
+        amr_tuples.append((inv_name, None, AmrCategory.INV_ARG, None))
 
 
     en_ids = set()
@@ -71,21 +71,21 @@ def main(raw_args=None):
             if "es" in sample:
                 multiling_ids.update(tokenizer(sample['es'])['input_ids'])
 
-    amr_tuples.append(("<stop>", None, AmrToken.STOP, None))
+    amr_tuples.append(("<stop>", None, AmrCategory.STOP, None))
 
-    amr_tuples.append((":polarity -", get_ids('not'), AmrToken.POLARITY, None))
+    amr_tuples.append((":polarity -", get_ids('not'), AmrCategory.POLARITY, None))
 
-    amr_tuples.append((":domain", get_ids('is'), AmrToken.DOMAIN, None))
-    amr_tuples.append((":domain-of", get_ids('is'), AmrToken.INV_DOMAIN, None))
-    amr_tuples.append((":poss", get_ids('his'), AmrToken.POSS, None))
-    amr_tuples.append((":poss-of", get_ids('his'), AmrToken.INV_POSS, None))
+    amr_tuples.append((":domain", get_ids('is'), AmrCategory.DOMAIN, None))
+    amr_tuples.append((":domain-of", get_ids('is'), AmrCategory.INV_DOMAIN, None))
+    amr_tuples.append((":poss", get_ids('his'), AmrCategory.POSS, None))
+    amr_tuples.append((":poss-of", get_ids('his'), AmrCategory.INV_POSS, None))
 
-    amr_tuples.append(("and", get_ids('and'), AmrToken.CONJ, None))
-    amr_tuples.append(("or", get_ids('or'), AmrToken.CONJ, None))
+    amr_tuples.append(("and", get_ids('and'), AmrCategory.CONJ, None))
+    amr_tuples.append(("or", get_ids('or'), AmrCategory.CONJ, None))
 
-    amr_tuples.append(("amr-unknown", get_ids('what'), AmrToken.UNKNOWN, None))
-    amr_tuples.extend( (f":op{i}", None, AmrToken.OPTION, None) for i in range(ops_limit))
-    amr_tuples.extend( (f"<R{i}>", None, AmrToken.LABEL, None) for i in range(concepts_limit))
+    amr_tuples.append(("amr-unknown", get_ids('what'), AmrCategory.UNKNOWN, None))
+    amr_tuples.extend( (f":op{i}", None, AmrCategory.OPTION, None) for i in range(ops_limit))
+    amr_tuples.extend( (f"<R{i}>", None, AmrCategory.LABEL, None) for i in range(concepts_limit))
 
     amr_entries = []
     for (i, (token, embed_id, category, args)) in enumerate(amr_tuples, start=len(vocab)):

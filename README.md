@@ -8,6 +8,28 @@ conda env create -f environment.yml
 conda activate unsup_amr
 ```
 
+## Training
+
+Pytorch Lightning has many optional CLI params:
+```bash
+python -m unsupamr.fit --help
+```
+
+These are the mandatory ones I've added though:
+- `--data.source_lang en|es|de`
+- `--data.dest_lang en|es|de`
+- `--model.vocab_path /path/to/vocab.json`
+
+Here's a sample run:
+```bash
+python -m unsupamr.fit \
+    --data.source_lang en \
+    --data.target_lang de \
+    --data.batch_size 2 \
+    --model.vocab_path /home/ethanlmines/vocab.json \
+    --data.debug_subset true \
+```
+
 ## Vocabulary Generation
 
 ```

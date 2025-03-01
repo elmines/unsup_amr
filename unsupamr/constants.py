@@ -1,7 +1,7 @@
 import enum
 
 @enum.unique
-class AmrToken(enum.Enum):
+class AmrCategory(enum.Enum):
     FRAME = "frame"
     ARG = "arg"
     INV_ARG = "arg-of"
@@ -21,6 +21,8 @@ class AmrToken(enum.Enum):
     STOP = "stop"
 
 DEFAULT_SEQ_MODEL = "google/mt5-small"
+
+DEFAULT_MAX_GRAPH_SIZE = 64
 
 EUROPARL_URI = "Helsinki-NLP/europarl"
 
