@@ -11,7 +11,7 @@ class EuroParlDataModule(L.LightningDataModule):
                  source_lang: str,
                  target_lang: str,
                  pretrained_model: str = DEFAULT_SEQ_MODEL,
-                 batch_size: int = 4,
+                 batch_size: int = 2,
                  debug_subset: bool = False):
         super().__init__()
         self.save_hyperparameters()
