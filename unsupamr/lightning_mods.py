@@ -1,5 +1,5 @@
 # STL
-
+import json
 # 3rd Party
 import lightning as L
 from transformers import MT5ForConditionalGeneration
@@ -8,7 +8,7 @@ import torch
 from .t2a import T2A
 from .constants import DEFAULT_SEQ_MODEL, DEFAULT_MAX_GRAPH_SIZE
 from .embeddings import expand_embedding, expand_lm_head, mult_embedding_lookup
-from .utils import load_vocab
+from .utils import VocabExt
 
 
 class TrainingMod(L.LightningModule):
@@ -20,7 +20,8 @@ class TrainingMod(L.LightningModule):
         super().__init__()
         self.save_hyperparameters()
 
-        vocab_ext = load_vocab(vocab_path)
+        with open(vocab_path, 'r') as r:
+            vocab_ext = VocabExt.from_json(json.load(r))
         pretrained_a = MT5ForConditionalGeneration.from_pretrained(pretrained_model)
         self.embeddings = expand_embedding(pretrained_a.get_input_embeddings(), vocab_ext)
         pretrained_a.set_input_embeddings(self.embeddings)
@@ -30,6 +31,10 @@ class TrainingMod(L.LightningModule):
         self.a2t = MT5ForConditionalGeneration.from_pretrained(pretrained_model)
         self.a2t.set_input_embeddings(self.embeddings)
         self.a2t.lm_head = expand_lm_head(self.a2t.lm_head, vocab_ext)
+
+        self.embeddings.train()
+        self.t2a.train()
+        self.a2t.train()
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=1e-4)

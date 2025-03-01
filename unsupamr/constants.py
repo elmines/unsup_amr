@@ -1,7 +1,7 @@
 import enum
 
 @enum.unique
-class AmrToken(enum.Enum):
+class AmrCategory(enum.Enum):
     FRAME = "frame"
     ARG = "arg"
     INV_ARG = "arg-of"
