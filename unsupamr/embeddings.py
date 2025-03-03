@@ -1,5 +1,6 @@
 # STL
 # 3rd Party
+import json
 import torch
 # Local
 from .utils import VocabExt
@@ -18,8 +19,18 @@ def expand_embedding(embedding: torch.nn.Embedding, vocab: VocabExt) -> torch.nn
         embedding: Embedding matrix from torch object
         vocab: vocab matrix as the output of T2A
     """
-    
-    return embedding
+    amr_entries = vocab.amr_symbols
+    old_weight_mat = embedding.weight
+
+    old_vocab_size, embedding_size = old_weight_mat.shape
+    new_vocab_size = old_vocab_size + len(amr_entries)
+
+    new_embedding = torch.nn.Embedding(new_vocab_size, embedding_size)
+    new_embedding.weight[:old_vocab_size] = old_weight_mat
+    for entry in amr_entries:
+        if entry.embed_id is not None:
+            new_embedding.weight[entry.id] = old_weight_mat[entry.embed_id]    
+    return new_embedding
 
 def mult_embedding_lookup(prob_dists: torch.Tensor, embedding: torch.nn.Embedding):
     return prob_dists @ embedding.weight
