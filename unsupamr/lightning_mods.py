@@ -8,7 +8,7 @@ import torch
 from .t2a import T2A
 from .constants import DEFAULT_SEQ_MODEL, DEFAULT_MAX_GRAPH_SIZE
 from .embeddings import expand_embedding, expand_lm_head, mult_embedding_lookup
-from .utils import VocabExt
+from .utils import VocabExt, load_vocab
 
 
 class TrainingMod(L.LightningModule):
@@ -20,8 +20,7 @@ class TrainingMod(L.LightningModule):
         super().__init__()
         self.save_hyperparameters()
 
-        with open(vocab_path, 'r') as r:
-            vocab_ext = VocabExt.from_json(json.load(r))
+        vocab_ext = VocabExt.from_json(load_vocab(vocab_path))
         pretrained_a = MT5ForConditionalGeneration.from_pretrained(pretrained_model)
         self.embeddings = expand_embedding(pretrained_a.get_input_embeddings(), vocab_ext)
         pretrained_a.set_input_embeddings(self.embeddings)

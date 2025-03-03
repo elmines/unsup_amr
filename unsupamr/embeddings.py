@@ -12,8 +12,13 @@ def expand_lm_head(head: torch.nn.Linear, vocab: VocabExt) -> torch.nn.Linear:
 
 def expand_embedding(embedding: torch.nn.Embedding, vocab: VocabExt) -> torch.nn.Embedding:
     """
-    TODO: @Ravi
+    Expand the embedding matrix with custom Vocab columns
+
+    Args:
+        embedding: Embedding matrix from torch object
+        vocab: vocab matrix as the output of T2A
     """
+    
     return embedding
 
 def mult_embedding_lookup(prob_dists: torch.Tensor, embedding: torch.nn.Embedding):
