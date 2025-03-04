@@ -38,6 +38,12 @@ class TrainingMod(L.LightningModule):
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=1e-4)
 
+    def configure_gradient_clipping(self, optimizer, gradient_clip_val = 0.1, gradient_clip_algorithm = 'value'):
+        """
+        This is just a way to enable gradient clipping by default
+        """
+        return super().configure_gradient_clipping(optimizer, gradient_clip_val, gradient_clip_algorithm)
+
     def training_step(self, batch, batch_idx):
         prob_history, pred_attention_mask = self.t2a(
             input_ids=batch['input_ids'],
