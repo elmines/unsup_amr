@@ -122,7 +122,7 @@ class NextTokens(AbstractNextTokens):
                 mask[self.stop_idx] = 1 #take unpicked ARGS and only return that and STOP token
                 return mask 
 
-            #Condition 5: Check if the token is a stop token
+            #Condition 5: ?
             if token_id not in self.context:
                 for verb_idx in self.vf.keys():
                     mask[verb_idx] = 1
