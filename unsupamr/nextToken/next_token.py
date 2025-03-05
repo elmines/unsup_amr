@@ -1,4 +1,4 @@
-from typing import List, Set, Dict
+from typing import List, Set, Dict, Optional
 from collections import defaultdict
 import json 
 import torch
@@ -44,72 +44,99 @@ class NextTokens(AbstractNextTokens):
         # State variables
         self.context = []  # Track tokens predicted so far
         self.verb_arguments = {}  # Track which verbs have had which arguments populated
+        self.mapping = {} #Maps seq_idx to vocab_idx
         self.vocab_size = len(self.vocab)
-        self.stop_token_idx = 0
-        self.current_verb = None
-        self.current_label = None
+        self.current_verb = None #Current verb (seq_idx)
+        self.current_label = None #Current node label (seq idx)
         self.frames_queue = deque([])
         self.seq_idx = -1
-        self.mapping = {}
+        self.stop_token_idx = 0
+        self.end_of_sequence_idx = 1
+        self.pad_idx = 2
+        self.start_label_idx = 3
         
-    def nextTokens(self, token_id: int) -> torch.Tensor:
+        
+    def nextTokens(self, token_id: Optional[int]) -> torch.Tensor:
         """
         Determines which tokens are allowed next based on the predicted word.
 
         token: the most recent word predicted by the encoder.
         """ 
         mask = torch.full((self.vocab_size,), -math.inf)  # Start with all tokens disallowed
+        
+        if not token_id and not self.context:
+            mask[self.start_label_idx] = 0
+            return mask 
+        
         self.seq_idx+=1
         self.mapping[self.seq_idx] = token_id
         self.context.append(token_id)
+
+        if token_id == self.stop_token_idx:
+            if len(self.frames_queue) > 0:
+                self.current_verb = self.frames_queue.popleft()
+                if self.mapper[self.current_label] + 1 in self.label_idxs:
+                    mask[self.mapper[self.current_label] + 1] = 0
+            else:
+                mask[self.stop_token_idx] = 0 
+            return mask
+        
+        if token_id == self.end_of_sequence_idx or token_id == self.pad_idx:
+            mask[self.pad_idx] = 0
+            return mask 
 
         # Condition 0: If the current token is a verb, start its argument tracking
         if token_id in self.verb_idxs:
             self.frames_queue.append(self.seq_idx)
             self.verb_arguments[self.seq_idx] = set()
             if self.current_verb is None and len(self.frames_queue) > 0:
-                self.current_verb = self.verb_arguments[self.frames_queue.popleft()]
+                self.current_verb = self.frames_queue.popleft()
             #Allowed args of current verb frame and stop token
             allowed_arg_idxs = self.vf[self.mapping[self.current_verb]]
             for arg_idx in allowed_arg_idxs:
                 if arg_idx not in self.verb_arguments[self.current_verb]:
-                    mask[arg_idx] = 1
-            mask[self.stop_idx] = 1
+                    mask[arg_idx] = 0
+            mask[self.stop_idx] = 0
             return mask 
 
         else:
             # Condition 1: Check if token is a node <Rn> 
             if token_id in self.label_idxs:
-                self.current_label = token_id
+                self.current_label = seq_idx
                 #If the frames queue is empty, constrain to only verb frames
                 if len(self.frames_queue) == 0:
                     for verb_idx in self.vf.keys():
                         mask[verb_idx] = 1
                     return mask #with only verb frames
+                #Condition 2: Check if the node is an re-entrant edgge
+                elif token_id in self.context: #re-entrant edge 
+                    allowed_arg_idxs = self.vf[self.mapping[self.current_verb]]
+                    for arg_idx in allowed_arg_idxs:
+                        if arg_idx not in self.verb_arguments[self.current_verb]:
+                            mask[arg_idx] = 0
+                    mask[self.stop_idx] = 0 #take unpicked ARGS and only return that and STOP token
+                    return mask 
                 else:
                     #Otherwise, It could be both concepts and verb frames
                     for verb_idx in self.vf.keys():
-                        mask[verb_idx] = 1
+                        mask[verb_idx] = 0
                     for concept_idx in self.concept_idxs:
-                        mask[concept_idx] = 1
+                        mask[concept_idx] = 0
                 return mask
 
-            #Condition 2: Check if the node is an re-entrant edgge
-            if token_id in self.context: #re-entrant edge 
-                allowed_arg_idxs = self.vf[self.mapping[self.current_verb]]
-                for arg_idx in allowed_arg_idxs:
-                    if arg_idx not in self.verb_arguments[self.current_verb]:
-                        mask[arg_idx] = 1
-                mask[self.stop_idx] = 1 #take unpicked ARGS and only return that and STOP token
-                return mask 
+            
                
             #Condition 3: If the token is an argument edge (e.g., `:ARG1`), track it
             if token_id in self.arg_idxs:
                 #Add the ARG edge to the current verb's hashmap
                 self.verb_arguments[self.current_verb].add(token_id)
                 #If the input is ARG, next token has to be already seen Rn or next Rn
-                mask[self.current_label] = 1
-                mask[self.current_label+1] = 1
+                mask[self.mapper[self.current_label]] = 0
+                if self.mapper[self.current_label] + 1 in self.arg_idxs:
+                    mask[self.mapper[self.current_label]+1] = 0
+                for seq_idx in self.context:
+                    if self.mapper[seq_idx] in self.label_idxs:
+                        mask[self.mapper[seq_idx]] = 0
                 return mask
                 
             #Condition 4: Check if the token is a concept
@@ -118,16 +145,16 @@ class NextTokens(AbstractNextTokens):
                 allowed_arg_idxs = self.vf[self.mapping[self.current_verb]]
                 for arg_idx in allowed_arg_idxs:
                     if arg_idx not in self.verb_arguments[self.current_verb]:
-                        mask[arg_idx] = 1
-                mask[self.stop_idx] = 1 #take unpicked ARGS and only return that and STOP token
+                        mask[arg_idx] = 0
+                mask[self.stop_idx] = 0 #take unpicked ARGS and only return that and STOP token
                 return mask 
 
             #Condition 5: ?
             if token_id not in self.context:
                 for verb_idx in self.vf.keys():
-                    mask[verb_idx] = 1
+                    mask[verb_idx] = 0
                 for concept_idx in self.concept_idxs:
-                    mask[concept_idx] = 1
+                    mask[concept_idx] = 0
                 return mask  #return either a verb frame or a concept (pruned english)
                
         return mask  # return the default mask 
