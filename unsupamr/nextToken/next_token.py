@@ -63,7 +63,7 @@ class NextTokens(AbstractNextTokens):
         token: the most recent word predicted by the encoder.
         """ 
         mask = torch.full((self.vocab_size,), -math.inf)  # Start with all tokens disallowed
-        
+
         if not token_id and not self.context:
             mask[self.start_label_idx] = 0
             return mask 
@@ -124,7 +124,6 @@ class NextTokens(AbstractNextTokens):
                         mask[concept_idx] = 0
                 return mask
 
-            
                
             #Condition 3: If the token is an argument edge (e.g., `:ARG1`), track it
             if token_id in self.arg_idxs:
@@ -148,14 +147,6 @@ class NextTokens(AbstractNextTokens):
                         mask[arg_idx] = 0
                 mask[self.stop_idx] = 0 #take unpicked ARGS and only return that and STOP token
                 return mask 
-
-            #Condition 5: ?
-            if token_id not in self.context:
-                for verb_idx in self.vf.keys():
-                    mask[verb_idx] = 0
-                for concept_idx in self.concept_idxs:
-                    mask[concept_idx] = 0
-                return mask  #return either a verb frame or a concept (pruned english)
                
         return mask  # return the default mask 
 
