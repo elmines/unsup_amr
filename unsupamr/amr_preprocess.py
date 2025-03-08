@@ -1,7 +1,11 @@
+from typing import Dict, List
 from datasets import load_dataset
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, PreTrainedTokenizerFast
 import torch
 import os
+
+
+from .constants import AMR_DATA_DIR
 
 class AMRPreprocessor:
     """
@@ -10,7 +14,7 @@ class AMRPreprocessor:
     - Tokenizes sentences
     - Returns input_ids for model evaluation
     """
-    def __init__(self, model_name="bert-base-multilingual-cased", amr_version="3.0", data_dir=None):
+    def __init__(self, model_name="bert-base-multilingual-cased", amr_version="3.0", data_dir=AMR_DATA_DIR):
         """
         Initialize the preprocessor.
         
@@ -75,8 +79,40 @@ class AMRPreprocessor:
 
         return input_ids
 
+
+class AMRInputIDDataset(torch.utils.data.Dataset):
+    """Custom PyTorch Dataset for AMR input ids."""
+    def __init__(self, input_ids):
+        self.dataset = input_ids
+
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, idx):
+        return {
+            'input_ids': torch.tensor(self.dataset[idx])
+        }
+
+def amr_collate_fn(tokenizer: PreTrainedTokenizerFast, samples: List[Dict]) -> Dict:
+    """
+    Custom collate function for PyTorch DataLoader.
+    - Pads sequences
+    - Creates attention mask
+    - Sets padding tokens in target sequences to -100 for loss masking
+    """
+    token_padding = tokenizer.pad_token_id
+    input_ids = [torch.squeeze(s['input_ids'], 0) for s in samples]
+
+    batch = {
+        'input_ids': torch.nn.utils.rnn.pad_sequence(input_ids, batch_first=True, padding_value=token_padding),
+    }
+    batch['attention_mask'] = batch['input_ids'] != token_padding
+
+    return batch
+
+
 def amr_preprocess(amr_version, data_dir):
-    amr_preprocessor = AMRPreprocessor(amr_version, data_dir) 
+    amr_preprocessor = AMRPreprocessor(amr_version, data_dir)
     tokenized_sentences = amr_preprocessor.get_input_ids()
 
     # Print the first 5 tokenized sentences for inspection
