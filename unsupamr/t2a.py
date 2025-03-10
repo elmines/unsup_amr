@@ -7,7 +7,7 @@ from transformers.cache_utils import DynamicCache, EncoderDecoderCache
 # Local
 from .constants import DEFAULT_MAX_GRAPH_SIZE
 from .embeddings import mult_embedding_lookup
-from .next_tokens import NextTokens
+from .next_token import NextTokens, NextTokensFactory
 from .utils import VocabExt
 
 class T2A(torch.nn.Module):
@@ -34,7 +34,7 @@ class T2A(torch.nn.Module):
 
         assert self.encoder.get_input_embeddings() is self.decoder.get_input_embeddings()
 
-
+        self.nt_fact = NextTokensFactory(vocab_ext)
 
     def forward(self,
                 input_ids: torch.Tensor,
@@ -49,7 +49,7 @@ class T2A(torch.nn.Module):
         pad_ids = torch.full([n_samples, 1], fill_value=self.pad_token_id, device=input_ids.device)
         embeddings = self.embeddings(pad_ids)
 
-        trackers = [NextTokens(self.vocab_ext, self.pad_token_id, self.eos_token_id) for _ in range(n_samples)]
+        trackers = [self.nt_fact.build() for _ in range(n_samples)]
 
         prob_history = []
         pred_history = []
@@ -72,7 +72,7 @@ class T2A(torch.nn.Module):
             sequence_output = torch.squeeze(decoder_outputs.last_hidden_state[:, -1]) # Project just the most recent hidden state
             raw_logits = self.lm_head(sequence_output)
 
-            masks = torch.stack([t.next_tokens() for t in trackers], dim=0).to(raw_logits.device)
+            masks = torch.stack([t.nextTokens() for t in trackers], dim=0).to(raw_logits.device)
             masked_logits = raw_logits + masks
             scaled_logits = masked_logits / self.temperature
             probs = torch.nn.functional.softmax(scaled_logits, dim=-1)
@@ -82,7 +82,7 @@ class T2A(torch.nn.Module):
                 preds = torch.argmax(probs, dim=-1)
                 pred_history.append(preds)
                 for (pred, tracker) in zip(preds, trackers):
-                    tracker.record(int(pred))
+                    tracker.nextTokens(int(pred))
                 is_finished = torch.all(torch.logical_or(preds == self.eos_token_id, preds == self.pad_token_id))
             new_embeddings = mult_embedding_lookup(probs, self.embeddings)
             embeddings = torch.unsqueeze(new_embeddings, dim=-2)

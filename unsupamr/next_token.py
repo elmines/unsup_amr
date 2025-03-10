@@ -17,16 +17,6 @@ For a given verb node, we must predict all its argument edges in sequence. That 
 A verb node should have at least one argument
 """
 
-class AbstractNextTokens:
-    def nextTokens(self, prediction: int) -> torch.Tensor:
-        """
-        prediction: The word we just predicted
-
-        Returns:
-            Tensor of shape (vocabulary_size,) where a 0 indicates the word is allowed and -torch.inf indicates it's not allowed
-        """
-        pass
-
 class NextTokensFactory:
     """
     Class that already has necessary preprocessing done for the NextTokens object
@@ -36,8 +26,8 @@ class NextTokensFactory:
         self.vf = {ent.id:ent.args for ent in vocab.amr_symbols if ent.category == AmrCategory.FRAME}
         self.label_idxs = {ent.id for ent in vocab.amr_symbols if ent.category == AmrCategory.LABEL}
         self.arg_idxs = {ent.id for ent in vocab.amr_symbols if ent.category == AmrCategory.ARG} # Only args, no inverse args yet
-        self.concept_idxs = set(vocab.pruned_english) - {self.eos_id, self.pad_id}
-        self.start_label_idx = next(ent.id for ent in vocab.amr_symbols if ent["token"] == "<R0>")
+        self.concept_idxs = set(vocab.pruned_english) - {vocab.eos_id, vocab.pad_id}
+        self.start_label_idx = next(ent.id for ent in vocab.amr_symbols if ent.token == "<R0>")
         self.stop_token_idx = next(ent.id for ent in vocab.amr_symbols if ent.category == AmrCategory.STOP)
         self.end_of_sequence_idx = vocab.eos_id
         self.pad_idx = vocab.pad_id
@@ -61,7 +51,7 @@ class NextTokensFactory:
 
 
 
-class NextTokens(AbstractNextTokens):
+class NextTokens:
     def __init__(self,
                 vf,
                 label_idxs,
@@ -101,9 +91,16 @@ class NextTokens(AbstractNextTokens):
         self.current_label = None #Current node label (seq idx)
         self.frames_queue = deque([])
         self.seq_idx = -1
+
+        self.__last_mask = None
         
+    def nextTokens(self, token_id: Optional[int] = None):
+        if token_id is None and self.context:
+            return self.__last_mask
+        self.__last_mask = self.__nextTokens(token_id)
+        return self.__last_mask
         
-    def nextTokens(self, token_id: Optional[int]) -> torch.Tensor:
+    def __nextTokens(self, token_id: Optional[int]) -> torch.Tensor:
         """
         Determines which tokens are allowed next based on the predicted word.
 

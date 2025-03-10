@@ -5,7 +5,7 @@ import sys
 import json
 # 3rd Party
 from tqdm import tqdm
-from transformers import T5Tokenizer
+from transformers import T5Tokenizer, MT5ForConditionalGeneration
 from datasets import load_dataset
 # Local
 from .constants import EUROPARL_URI, T5_SEP, DEFAULT_SEQ_MODEL, AmrCategory
@@ -31,6 +31,8 @@ def main(raw_args=None):
     concepts_limit = args.max_concepts
     ops_limit = args.max_ops
     out_path = args.o
+
+    lm_head_size = MT5ForConditionalGeneration.from_pretrained(model_name).lm_head.weight.shape[0]
 
     tokenizer = T5Tokenizer.from_pretrained(model_name)
     eos_id = get_special_token("eos_token", tokenizer)
@@ -59,7 +61,7 @@ def main(raw_args=None):
         arg_vocab.update(args)
         vf_tuples.append((frame_name, get_ids(lemma), AmrCategory.FRAME, args))
 
-    vocab_index = len(vocab)
+    vocab_index = lm_head_size
     arg_map = dict()
     amr_entries = []
     for arg_name in sorted(arg_vocab):
@@ -91,17 +93,17 @@ def main(raw_args=None):
 
     en_ids = set()
     multiling_ids = set()
-    # for subset in DATASET_SUBSETS:
-    #     ds = load_dataset(path=EUROPARL_URI, name=subset)['train']['translation']
-    #     for sample in tqdm(ds, desc=f"EuroParl {subset}"):
-    #         if "en" in sample:
-    #             sample_ids = tokenizer(sample['en'])['input_ids']
-    #             en_ids.update(sample_ids)
-    #             multiling_ids.update(sample_ids)
-    #         if "de" in sample:
-    #             multiling_ids.update(tokenizer(sample['de'])['input_ids'])
-    #         if "es" in sample:
-    #             multiling_ids.update(tokenizer(sample['es'])['input_ids'])
+    for subset in DATASET_SUBSETS:
+        ds = load_dataset(path=EUROPARL_URI, name=subset)['train']['translation']
+        for sample in tqdm(ds, desc=f"EuroParl {subset}"):
+            if "en" in sample:
+                sample_ids = tokenizer(sample['en'])['input_ids']
+                en_ids.update(sample_ids)
+                multiling_ids.update(sample_ids)
+            if "de" in sample:
+                multiling_ids.update(tokenizer(sample['de'])['input_ids'])
+            if "es" in sample:
+                multiling_ids.update(tokenizer(sample['es'])['input_ids'])
 
     amr_tuples.append(("<stop>", None, AmrCategory.STOP))
 
