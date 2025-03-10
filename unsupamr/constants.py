@@ -1,7 +1,7 @@
 import enum
 
 @enum.unique
-class AmrToken(enum.Enum):
+class AmrCategory(enum.Enum):
     FRAME = "frame"
     ARG = "arg"
     INV_ARG = "arg-of"
@@ -22,6 +22,8 @@ class AmrToken(enum.Enum):
 
 DEFAULT_SEQ_MODEL = "google/mt5-small"
 
+DEFAULT_MAX_GRAPH_SIZE = 64
+
 EUROPARL_URI = "Helsinki-NLP/europarl"
 
 T5_SEP = (b'\xe2\x96\x81').decode()
@@ -29,3 +31,5 @@ T5_SEP = (b'\xe2\x96\x81').decode()
 Separator character used by T5 tokenizers.
 Looks like an underscore but isn't.
 """
+
+AMR_DATA_DIR = 'amr_data'

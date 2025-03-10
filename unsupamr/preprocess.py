@@ -3,6 +3,8 @@ from transformers import AutoTokenizer, PreTrainedTokenizerFast
 import torch
 from torch.utils.data import Dataset, DataLoader
 from typing import List, Dict
+# Local
+from .constants import DEFAULT_SEQ_MODEL
 
 class EuroparlPreprocessor:
     """
@@ -11,7 +13,7 @@ class EuroparlPreprocessor:
     - Tokenizes text
     - Applies padding and truncation
     """
-    def __init__(self, model_name="bert-base-multilingual-cased", source_lang="en", target_lang="es", sample_subset=False):
+    def __init__(self, model_name=DEFAULT_SEQ_MODEL, source_lang="en", target_lang="es", sample_subset=False):
         """
         Initialize with model name and source/target languages.
         Args:
@@ -20,11 +22,21 @@ class EuroparlPreprocessor:
         - target_lang (str): The language of the output sentences (e.g., "es").
         """
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+        lang_datamap = {
+            ("en", "de") : "de-en",
+            ("de", "en") : "de-en",
+            ("es", "de") : "de-es",
+            ("de", "es") : "de-es",
+            ("en", "es") : "en-es",
+            ("es", "en") : "es-en",
+        }
+        data_subset = lang_datamap[source_lang, target_lang]
         
         if sample_subset:
-            self.dataset = load_dataset("Helsinki-NLP/europarl", f"{source_lang}-{target_lang}")['train'].select(range(5000))  # Sample subset
+            self.dataset = load_dataset("Helsinki-NLP/europarl", data_subset)['train'].select(range(5000))  # Sample subset
         else:
-            self.dataset = load_dataset("Helsinki-NLP/europarl", f"{source_lang}-{target_lang}")['train']  # Full Dataset
+            self.dataset = load_dataset("Helsinki-NLP/europarl", data_subset)['train']  # Full Dataset
             
         self.source_lang = source_lang
         self.target_lang = target_lang
@@ -79,7 +91,7 @@ class EuroparlTranslationDataset(Dataset):
             "target_ids": torch.tensor(sample["target_ids"]).squeeze(0),
         }
 
-def preprocess_europarl(model_name="bert-base-multilingual-cased", source_lang="en", target_lang="es", batch_size=32, sample_subset=False):
+def preprocess_europarl(model_name=DEFAULT_SEQ_MODEL, source_lang="en", target_lang="es", batch_size=32, sample_subset=False):
     """
     Run the Europarl preprocessing, tokenization, and DataLoader creation.
     
