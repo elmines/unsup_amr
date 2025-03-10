@@ -1,9 +1,13 @@
+from __future__ import annotations
 from typing import List, Set, Dict, Optional
 from collections import defaultdict
 import json 
 import torch
 import math 
 from collections import deque 
+# Local
+from .utils import VocabExt
+from .constants import AmrCategory
 
 """
 Since we’re doing breadth-first search, we can enforce the following constraints:
@@ -23,37 +27,80 @@ class AbstractNextTokens:
         """
         pass
 
+class NextTokensFactory:
+    """
+    Class that already has necessary preprocessing done for the NextTokens object
+    """
+
+    def __init__(self, vocab: VocabExt):
+        self.vf = {ent.id:ent.args for ent in vocab.amr_symbols if ent.category == AmrCategory.FRAME}
+        self.label_idxs = {ent.id for ent in vocab.amr_symbols if ent.category == AmrCategory.LABEL}
+        self.arg_idxs = {ent.id for ent in vocab.amr_symbols if ent.category == AmrCategory.ARG} # Only args, no inverse args yet
+        self.concept_idxs = set(vocab.pruned_english) - {self.eos_id, self.pad_id}
+        self.start_label_idx = next(ent.id for ent in vocab.amr_symbols if ent["token"] == "<R0>")
+        self.stop_token_idx = next(ent.id for ent in vocab.amr_symbols if ent.category == AmrCategory.STOP)
+        self.end_of_sequence_idx = vocab.eos_id
+        self.pad_idx = vocab.pad_id
+        self.vocab_size = max(ent.id for ent in vocab.amr_symbols) + 1
+
+        assert self.start_label_idx is not None
+        assert self.stop_token_idx is not None
+
+    def build(self) -> NextTokens:
+        return NextTokens(
+            vf=self.vf,
+            label_idxs=self.label_idxs,
+            arg_idxs=self.arg_idxs,
+            concept_idxs=self.concept_idxs,
+            start_label_idx=self.start_label_idx,
+            stop_token_idx=self.stop_token_idx,
+            end_of_sequence_idx=self.end_of_sequence_idx,
+            pad_idx=self.pad_idx,
+            vocab_size=self.vocab_size
+        )
+
+
 
 class NextTokens(AbstractNextTokens):
-    def __init__(self, verb_frames, verb_idxs, label_idxs, arg_idxs, concept_idxs, vocab):
+    def __init__(self,
+                vf,
+                label_idxs,
+                arg_idxs,
+                concept_idxs, 
+                start_label_idx,
+                stop_token_idx,
+                end_of_sequence_idx,
+                pad_idx,
+                vocab_size
+                #  verb_frames, verb_idxs, label_idxs, arg_idxs, concept_idxs, vocab
+                ):
         """
-        verb_frames: A dictionary mapping verbs to the set of allowed arguments (e.g., {'frame_vocab_id': {'arg1_vocab_id', 'arg2_vocab_id'}}).
         verb_idxs: A hashset of vocab indices corresponding to verbs.
         label_idxs: A hashset of vocab indices corresponding to labels.
         arg_idxs: A hashset of vocab indices corresponding to argument edges.
         concept_idxs: A hashset of vocab indices corresponding to concept nodes.
         """
 
-        self.vf = verb_frames
-        self.verb_idxs = verb_idxs 
+        self.vf = vf
+        self.verb_idxs = set(self.vf.keys())  # FIXME: this is redundant with self.vf. Don't need.
         self.label_idxs = label_idxs
         self.arg_idxs = arg_idxs 
         self.concept_idxs = concept_idxs
-        self.vocab = vocab
+        self.start_label_idx = start_label_idx
+        self.stop_token_idx = stop_token_idx
+        self.end_of_sequence_idx = end_of_sequence_idx
+        self.pad_idx = pad_idx
+        self.vocab_size = vocab_size
         
         # State variables
         self.context = []  # Track tokens predicted so far
         self.verb_arguments = {}  # Track which verbs have had which arguments populated
         self.mapping = {} #Maps seq_idx to vocab_idx
-        self.vocab_size = len(self.vocab)
+        # self.vocab_size = len(self.vocab)
         self.current_verb = None #Current verb (seq_idx)
         self.current_label = None #Current node label (seq idx)
         self.frames_queue = deque([])
         self.seq_idx = -1
-        self.stop_token_idx = 0
-        self.end_of_sequence_idx = 1
-        self.pad_idx = 2
-        self.start_label_idx = 3
         
         
     def nextTokens(self, token_id: Optional[int]) -> torch.Tensor:
@@ -64,7 +111,7 @@ class NextTokens(AbstractNextTokens):
         """ 
         mask = torch.full((self.vocab_size,), -math.inf)  # Start with all tokens disallowed
 
-        if not token_id and not self.context:
+        if not token_id is None and not self.context:
             mask[self.start_label_idx] = 0
             return mask 
         
@@ -169,15 +216,3 @@ def process_variables(file_path) -> Set[str]:
         if token_map["category"] == "label":
             variables.add(token_map.get("token"))
     return variables
-
-if __name__ == "__main__":
-    file_path = "data/vocab.json"
-    verb_frames = process_verbs(file_path)
-    variables = process_variables(file_path)
-    sequence = ["<R0>", "tell-01", ":ARG0", "<R1>", "you", ":ARG1", "<R3>", "wash-01", ":ARG2" ,"<R2>",  "i" ,"<stop>", "<R3>", ":ARG0" , "<R2>", ":ARG1" ,"<R4>" ,"dog" ,"<stop>"]
-    next_token_instance = NextTokens(verb_frames, variables)
-    for word in sequence:
-        mask = next_token_instance.nextTokens(word)
-        print(next_token_instance.context)
-        print(mask)
-   
