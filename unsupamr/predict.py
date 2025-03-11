@@ -8,6 +8,7 @@ if __name__ == "__main__":
     class PredictCLI(CustomCLI):
 
         def add_arguments_to_parser(self, parser):
+            super().add_arguments_to_parser(parser=parser)
             parser.add_argument('--output_path', type=str, required=True, help="Path to save  predictions.")
 
         
@@ -17,7 +18,7 @@ if __name__ == "__main__":
         
 
     
-    cli = CustomCLI(
+    cli = PredictCLI(
         model_class = PredictMod,
         datamodule_class = AMRDataModule,
         trainer_defaults = {
