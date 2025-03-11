@@ -42,11 +42,17 @@ class PredictMod(L.LightningModule):
 
         predictions = []
 
-        for tokens in pred_token_ids:
-            prediction = [self.vocab_ext.decode([token.item()]) for token in tokens]
-            predictions.append(prediction)
+        # for tokens in pred_token_ids:
+        #     prediction = [self.vocab_ext.decode([token.item()]) for token in tokens]
+        #     predictions.append(prediction)
+
+        predictions = [[token.item() for token in tokens] for tokens in pred_token_ids]
+
+        # predictions = pred_token_ids.tolist()
 
 
-        return predictions
+        return predictions  # List[List[int]]
+
+
 
         #return in format -> List[List[int]]
