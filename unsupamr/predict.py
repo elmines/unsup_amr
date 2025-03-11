@@ -3,21 +3,18 @@ from. predict_mods import PredictMod
 from .data_mods import EuroParlDataModule, AMRDataModule
 
 
-if __name__ == "__main__":
+class PredictCLI(CustomCLI):
 
-    class PredictCLI(CustomCLI):
-
-        def add_arguments_to_parser(self, parser):
-            super().add_arguments_to_parser(parser=parser)
-            parser.add_argument('--output_path', type=str, required=True, help="Path to save  predictions.")
-
-        
-        def after_instantiate_classes(self):
-            self.output_path = self.parser.parse_args().output_path
-            print(f"Predictions will be saved to: {self.output_path}")
-        
+    def add_arguments_to_parser(self, parser):
+        super().add_arguments_to_parser(parser=parser)
+        parser.add_argument('--output_path', type=str, required=True, help="Path to save predictions.")
 
     
+    def after_instantiate_classes(self):
+        self.output_path = self.parser.parse_args().output_path
+        print(f"Predictions will be saved to: {self.output_path}")
+
+if __name__ == "__main__":
     cli = PredictCLI(
         model_class = PredictMod,
         datamodule_class = AMRDataModule,

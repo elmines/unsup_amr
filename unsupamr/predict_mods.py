@@ -6,10 +6,8 @@ from .embeddings import expand_embedding, expand_lm_head
 from .utils import VocabExt, load_vocab
 from .constants import DEFAULT_SEQ_MODEL, DEFAULT_MAX_GRAPH_SIZE
 
-
 class PredictMod(L.LightningModule):
-
-    def __init(self, vocab_path: str, 
+    def __init__(self, vocab_path: str, 
                pretrained_model: str = DEFAULT_SEQ_MODEL,
                temperature: float = 1.,
                max_graph_size: int = DEFAULT_MAX_GRAPH_SIZE):
@@ -22,14 +20,10 @@ class PredictMod(L.LightningModule):
         pretrained_a.set_input_embeddings(self.embeddings)
         pretrained_a.lm_head = expand_lm_head(pretrained_a.lm_head, vocab_ext)
         self.t2a = T2A(pretrained_a, vocab_ext, temperature=temperature, max_iterations = max_graph_size)
-
-
-    # Changed to eval
         self.embeddings.eval()
         self.t2a.eval()
 
 
-    
     def predict_step(self, batch, batch_idx):
         
         prob_history, pred_attention_mask = self.t2a(
