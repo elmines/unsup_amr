@@ -89,6 +89,8 @@ class T2A(torch.nn.Module):
 
             if is_finished:
                 break
+        else:
+            print("Warning: hit maximum sequence length")
 
         prob_history = torch.stack(prob_history, dim=1)
         with torch.no_grad():
