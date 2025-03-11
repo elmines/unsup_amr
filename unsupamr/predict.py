@@ -1,6 +1,6 @@
 from .cli import CustomCLI
 from. predict_mods import PredictMod
-from .data_mods import EuroParlDataModule
+from .data_mods import EuroParlDataModule, AMRDataModule
 
 
 if __name__ == "__main__":
@@ -19,7 +19,7 @@ if __name__ == "__main__":
     
     cli = CustomCLI(
         model_class = PredictMod,
-        datamodule_class = EuroParlDataModule,
+        datamodule_class = AMRDataModule,
         trainer_defaults = {
             "max_epochs": 1,   #setting it 1 for now
             },
