@@ -98,20 +98,20 @@ class NextTokens:
         # State variables
         self.context = []  # Track tokens predicted so far
         self.args_used = {}  # (seq_idx -> [vocab_ids]) Track which verbs have had which arguments populated
-        self.tail_nodes = defaultdict(set) # (seq_idx -> [vocab_ids]) Track which nodes are already a target of this frame
+        self.tail_nodes = dict() # (<Rn> as vocab id -> [<Rn>s as vocab ids]) Track which nodes are already a target of a given frame
 
         self.next_label_id = self.start_label_idx
         self.max_label_id = max(self.label_idxs)
 
         self.seq2vocab = {} #Maps seq_idx to vocab_idx
-        self.current_verb = None #Current verb (seq_idx)
-        self.current_label = None #Current node label (seq idx)
+        self.current_verb = None #Current frame (seq_idx)
+        self.current_label = None #Current node label (vocab id)
         self.frames_queue = deque([])
         self.seq_idx = -1
 
         # predecessors
         # keys are <Rn>'s, values are sets of {Rn's}
-        self.__predecessors = defaultdict(set) # (vocab_idx -> {vocab_idx's})
+        self.__predecessors = dict() # (vocab_idx -> {vocab_idx's})
 
         self.__last_mask = None
 
@@ -122,17 +122,32 @@ class NextTokens:
         self.__last_mask = self.__nextTokens(token_id)
         return self.__last_mask
 
-    def __get_verb_arg_mask(self) -> torch.Tensor:
+    def __get_valid_targets(self, frame_idx: int) -> Set[int]:
+        """
+        fram_idx: sequence index of the frame of interest
+        """
+        node_label = self.context[frame_idx - 1]
+        return set(range(self.start_label_idx, min(self.next_label_id, self.max_label_id) + 1)) \
+            - self.__predecessors[node_label] \
+            - self.tail_nodes[frame_idx]
 
-        # FIXME: Must check how many valid targets we have available,
-        # before allowing the prediction of an arg
-        
+    def __get_arg_mask(self, frame_idx) -> torch.Tensor:
+        """
+        frame_idx: sequence index of some frame
+        """
         mask = torch.full((self.vocab_size,), -math.inf)
-        #Allowed args of current verb frame and stop token
-        allowed_arg_idxs = self.vf[self.mapping[self.current_verb]]
-        remaining_args = [idx for idx in self.args_used[self.current_verb] if idx not in allowed_arg_idxs]
-        mask[remaining_args] = 0
         mask[self.stop_token_idx] = 0
+
+        # If we know there are no nodes we can draw an edge to
+        # (we'd cause a cycle with existing ones, and we don't have room for new nodes)
+        # we should not allow the prediction of any edges
+        if not self.__get_valid_targets(frame_idx):
+            return mask
+
+        #Allowed args of current verb frame and stop token
+        allowed_arg_idxs = self.vf[self.seq2vocab[frame_idx]]
+        remaining_args = [idx for idx in self.args_used[frame_idx] if idx not in allowed_arg_idxs]
+        mask[remaining_args] = 0
         return mask
 
     def __nextTokens(self, token_id: Optional[int]) -> torch.Tensor:
@@ -148,15 +163,15 @@ class NextTokens:
             return mask 
         
         self.seq_idx+=1
-        self.mapping[self.seq_idx] = token_id
+        self.seq2vocab[self.seq_idx] = token_id
         self.context.append(token_id)
 
         if token_id == self.stop_token_idx:
             if len(self.frames_queue) > 0:
                 self.current_verb = self.frames_queue.popleft()
                 # The label would have immediately preceded the verb
-                node_label = self.context[self.current_verb - 1]
-                mask[node_label] = 0
+                self.current_label = self.context[self.current_verb - 1]
+                mask[self.current_label] = 0
             else:
                 mask[self.end_of_sequence_idx] = 0 
             return mask
@@ -164,7 +179,6 @@ class NextTokens:
             mask[self.pad_idx] = 0
             return mask 
 
-        # Condition 0: If the current token is a verb, start its argument tracking
         if token_id in self.verb_idxs:
             self.frames_queue.append(self.seq_idx)
             self.args_used[self.seq_idx] = set()
@@ -174,33 +188,35 @@ class NextTokens:
             else:
                 assert self.context[-2] in self.arg_idxs
                 assert self.context[-1] in self.label_idxs
-                self.tail_nodes[self.current_verb].add(self.seq_idx)
-            return self.__get_verb_arg_mask()
+                self.tail_nodes[self.current_label].add(self.context[-1])
+            return self.__get_arg_mask(self.current_verb)
         else:
             # Condition 1: Check if token is a node <Rn> 
             if token_id in self.label_idxs:
 
                 if self.context[-1] == self.stop_token_idx:
                     # We just finished a search for a previous node and are jumping to this one
+                    assert token_id in self.__predecessors
                     self.current_label = token_id
                     # self.current_verb was already set appropriately earlier
-                    return self.__get_verb_arg_mask()
+                    return self.__get_arg_mask(self.current_verb)
                 elif token_id in self.__predecessors:
-                    self.tail_nodes[self.current_verb].add(self.label2seq[token_id])
+                    self.tail_nodes[self.current_label].add(token_id)
                     # We have a re-entrant edge
                     # This means we're exploring the neighborhood of some frame, so keep exploring
-                    return self.__get_verb_arg_mask()
+                    return self.__get_arg_mask(self.current_verb)
 
                 assert token_id == self.next_label_id
                 self.next_label_id = min(self.next_label_id + 1, self.max_label_id)
                 # New node
 
                 # Consider a node to be a predecessor of itself. Don't want self-loops
-                self.__predecessors[token_id].add(token_id)
+                self.__predecessors[token_id] = {token_id}
                 if token_id == self.start_label_idx:
+                    # The root
                     assert self.current_label is None
-                    # The root. For now, require a frame to always be the root
                     self.current_label = token_id
+                    # For now, require a frame to always be the root
                     return self.__vf_mask
                 else:
                     # Some other new node
@@ -211,30 +227,21 @@ class NextTokens:
             #Condition 3: If the token is an argument edge (e.g., `:ARG1`), track it
             if token_id in self.arg_idxs:
                 #Add the ARG edge to the current verb's hashmap
+                valid_targets = self.__get_valid_targets(self.current_verb)
+                assert valid_targets, "Should not have predicted an edge if we didn't have a valid target for it"
                 self.args_used[self.current_verb].add(token_id)
-
-                # FIXME: Must check for what's a valid target, here.
-
-                #If the input is ARG, next token has to be already seen Rn or next Rn
-                mask[self.mapping[self.current_label]] = 0
-                if self.mapping[self.current_label] + 1 in self.arg_idxs:
-                    mask[self.mapping[self.current_label]+1] = 0
-
-                for seq_idx in self.context:
-                    if self.mapping[seq_idx] in self.label_idxs:
-                        mask[self.mapping[seq_idx]] = 0
-
+                mask[list(valid_targets)] = 0
                 return mask
                 
             #Condition 4: Check if the token is a concept
             if token_id in self.concept_idxs: 
                 assert self.context[-2] in self.arg_idxs
                 assert self.context[-1] in self.label_idxs
-                self.tail_nodes[self.current_verb].add(self.context[-1])
+                self.tail_nodes[self.current_label].add(self.context[-1])
                 # Token is a concept. Means we're exploring some verb's arguments
-                return self.__get_verb_arg_mask()
+                return self.__get_arg_mask()
                
-        return mask  # return the default mask 
+        raise ValueError(f"Invalid token for context: {token_id}")
 
 
 def process_verbs(file_path) -> Dict[str, List[str]]:
