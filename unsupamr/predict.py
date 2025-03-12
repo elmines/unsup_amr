@@ -11,8 +11,11 @@ class PredictCLI(CustomCLI):
 
     
     def after_instantiate_classes(self):
-        self.output_path = self.parser.parse_args().output_path
+        args = self.parser.parse_args()
+        print("Parsed Arguments:", args)  # Debugging step
+        self.output_path = args.output_path
         print(f"Predictions will be saved to: {self.output_path}")
+
 
 if __name__ == "__main__":
     cli = PredictCLI(
@@ -29,6 +32,6 @@ if __name__ == "__main__":
     with open(cli.output_path, "w") as f:
         for prediction in predictions:
             for pred in prediction:
-                f.write("".join(pred) + "\n")
+                f.write(str(pred) + "\n")
     
     print(f"Predictions saved to {cli.output_path}")
