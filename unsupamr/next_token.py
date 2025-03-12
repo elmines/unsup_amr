@@ -8,7 +8,6 @@ from collections import deque
 # Local
 from .utils import VocabExt
 from .constants import AmrCategory
-
 """
 Since we’re doing breadth-first search, we can enforce the following constraints:
 
@@ -98,7 +97,7 @@ class NextTokens:
         # State variables
         self.context = []  # Track tokens predicted so far
         self.args_used = {}  # (seq_idx -> [vocab_ids]) Track which verbs have had which arguments populated
-        self.tail_nodes = dict() # (<Rn> as vocab id -> [<Rn>s as vocab ids]) Track which nodes are already a target of a given frame
+        self.tail_nodes = defaultdict(lambda: set()) # (<Rn> as vocab id -> [<Rn>s as vocab ids]) Track which nodes are already a target of a given frame
 
         self.next_label_id = self.start_label_idx
         self.max_label_id = max(self.label_idxs)
@@ -240,7 +239,7 @@ class NextTokens:
                 assert self.context[-2] in self.label_idxs
                 self.tail_nodes[self.current_label].add(self.context[-2])
                 # Token is a concept. Means we're exploring some verb's arguments
-                return self.__get_arg_mask()
+                return self.__get_arg_mask(self.current_verb)
                
         raise ValueError(f"Invalid token for context: {token_id}")
 
