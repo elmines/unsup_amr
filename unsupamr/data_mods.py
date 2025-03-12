@@ -51,6 +51,9 @@ class AMRDataModule(L.LightningDataModule):
 
         self.test_loader: DataLoader = None
 
+    def predict_dataloader(self):
+        return self.test_loader
+
     def do_collate(self, batch):
         return amr_collate_fn(self.preprocessor.tokenizer, batch)    
 
