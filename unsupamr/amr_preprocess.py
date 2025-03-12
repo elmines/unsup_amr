@@ -36,9 +36,11 @@ class AMRPreprocessor:
         sentences = []
         # Path for AMR 3.0 files
         amr_3_path = f"{self.data_dir}/amr_annotation_3.0/data/amrs/split/test"
+ 
 
         # Iterate through files in the directory
         for file_name in sorted(os.listdir(amr_3_path)):
+           
             file_path = os.path.join(amr_3_path, file_name)
             with open(file_path, "r") as file:
                 for line in file:
