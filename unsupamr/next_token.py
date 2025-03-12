@@ -222,6 +222,7 @@ class NextTokens:
                     # Some other new node
                     self.__predecessors[token_id].update(self.__predecessors[self.current_label])
                     # For other new nodes, a frame or a concept are acceptable
+
                     return self.__vf_or_concept_mask
                
             #Condition 3: If the token is an argument edge (e.g., `:ARG1`), track it
@@ -240,7 +241,7 @@ class NextTokens:
                 self.tail_nodes[self.current_label].add(self.context[-2])
                 # Token is a concept. Means we're exploring some verb's arguments
                 return self.__get_arg_mask(self.current_verb)
-               
+
         raise ValueError(f"Invalid token for context: {token_id}")
 
 
