@@ -127,9 +127,10 @@ class NextTokens:
         fram_idx: sequence index of the frame of interest
         """
         node_label = self.context[frame_idx - 1]
-        return set(range(self.start_label_idx, min(self.next_label_id, self.max_label_id) + 1)) \
-            - self.__predecessors[node_label] \
-            - self.tail_nodes[frame_idx]
+        x = set(range(self.start_label_idx, min(self.max_label_id, self.next_label_id) + 1))
+        y = self.__predecessors[node_label]
+        z =  self.tail_nodes.get(node_label, set())
+        return x - y - z
 
     def __get_arg_mask(self, frame_idx) -> torch.Tensor:
         """
@@ -146,7 +147,7 @@ class NextTokens:
 
         #Allowed args of current verb frame and stop token
         allowed_arg_idxs = self.vf[self.seq2vocab[frame_idx]]
-        remaining_args = [idx for idx in self.args_used[frame_idx] if idx not in allowed_arg_idxs]
+        remaining_args = [idx for idx in allowed_arg_idxs if idx not in self.args_used[frame_idx]]
         mask[remaining_args] = 0
         return mask
 
@@ -165,7 +166,7 @@ class NextTokens:
         self.seq_idx+=1
         self.seq2vocab[self.seq_idx] = token_id
         self.context.append(token_id)
-
+        
         if token_id == self.stop_token_idx:
             if len(self.frames_queue) > 0:
                 self.current_verb = self.frames_queue.popleft()
@@ -186,15 +187,15 @@ class NextTokens:
             if self.current_verb is None and len(self.frames_queue) > 0:
                 self.current_verb = self.frames_queue.popleft()
             else:
-                assert self.context[-2] in self.arg_idxs
-                assert self.context[-1] in self.label_idxs
+                assert self.context[-3] in self.arg_idxs
+                assert self.context[-2] in self.label_idxs
                 self.tail_nodes[self.current_label].add(self.context[-1])
             return self.__get_arg_mask(self.current_verb)
         else:
             # Condition 1: Check if token is a node <Rn> 
             if token_id in self.label_idxs:
 
-                if self.context[-1] == self.stop_token_idx:
+                if len(self.context) > 1 and self.context[-2] == self.stop_token_idx:
                     # We just finished a search for a previous node and are jumping to this one
                     assert token_id in self.__predecessors
                     self.current_label = token_id
@@ -235,9 +236,9 @@ class NextTokens:
                 
             #Condition 4: Check if the token is a concept
             if token_id in self.concept_idxs: 
-                assert self.context[-2] in self.arg_idxs
-                assert self.context[-1] in self.label_idxs
-                self.tail_nodes[self.current_label].add(self.context[-1])
+                assert self.context[-3] in self.arg_idxs
+                assert self.context[-2] in self.label_idxs
+                self.tail_nodes[self.current_label].add(self.context[-2])
                 # Token is a concept. Means we're exploring some verb's arguments
                 return self.__get_arg_mask()
                
