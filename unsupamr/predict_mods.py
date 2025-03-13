@@ -34,7 +34,7 @@ class PredictMod(L.LightningModule):
         pred_token_ids = prob_history.argmax(dim=-1)
         
 
-        predictions = []
+        # predictions = []
 
         # for tokens in pred_token_ids:
         #     prediction = [self.vocab_ext.decode([token.item()]) for token in tokens]

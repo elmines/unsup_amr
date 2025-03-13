@@ -1,4 +1,5 @@
 # 3rd Party
+import time
 from lightning.pytorch.cli import LightningCLI
 # Local
 from .constants import DEFAULT_SEQ_MODEL
