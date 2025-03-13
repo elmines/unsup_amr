@@ -25,3 +25,6 @@ dependencies:
 
   - pip:
     - jsonargparse[signatures]
+
+    # Need this for metrics evaluation
+    - smatch
