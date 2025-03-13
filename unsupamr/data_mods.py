@@ -3,7 +3,8 @@ import lightning as L
 from torch.utils.data import DataLoader
 # Local
 from .preprocess import EuroparlPreprocessor, EuroparlTranslationDataset, collate_fn
-from .constants import DEFAULT_SEQ_MODEL
+from .constants import DEFAULT_SEQ_MODEL, AMR_DATA_DIR
+from .amr_preprocess import AMRInputIDDataset, AMRPreprocessor, amr_collate_fn
 
 class EuroParlDataModule(L.LightningDataModule):
 
@@ -37,3 +38,53 @@ class EuroParlDataModule(L.LightningDataModule):
 
     def train_dataloader(self):
         return self.train_loader
+
+
+class AMRDataModule(L.LightningDataModule):
+    def __init__(self,
+                 amr_version: str,
+                 pretrained_model: str = DEFAULT_SEQ_MODEL,
+                 data_dir: str = AMR_DATA_DIR,
+                 batch_size: int = 8):
+        super().__init__()
+        self.save_hyperparameters()
+
+        self.test_loader: DataLoader = None
+
+    def predict_dataloader(self):
+        return self.test_loader
+
+    def do_collate(self, batch):
+        return amr_collate_fn(self.preprocessor.tokenizer, batch)    
+
+    def setup(self, stage: str):
+        if stage != 'predict':
+            raise ValueError("AMR test data will be used only to test the predictions of T2A")
+
+        # Initialize preprocessor
+        self.preprocessor = AMRPreprocessor(
+            model_name=self.hparams.pretrained_model,
+            amr_version=self.hparams.amr_version,
+            data_dir=self.hparams.data_dir
+        )
+        tokenized_dataset = self.preprocessor.get_input_ids()
+    
+        # Create dataset and dataloader
+        test_dataset = AMRInputIDDataset(tokenized_dataset)
+        self.test_loader = DataLoader(
+            test_dataset,
+            batch_size=self.hparams.batch_size,
+            shuffle=False,
+            num_workers=1,
+            collate_fn=self.do_collate
+        )
+
+    def test_dataloader(self):
+        return self.test_loader
+    
+
+if __name__ == "__main__":
+    fake_datmod = AMRDataModule(amr_version="3.0")
+    fake_datmod.setup(stage='predict')
+    for batch in fake_datmod.test_dataloader():
+      print(batch)

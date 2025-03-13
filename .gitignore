@@ -6,6 +6,7 @@
 .vscode/
 
 *.json
+!vocab.json
 
 # Prefixes Ethan likes to use for junk files
 ethan*
@@ -16,3 +17,5 @@ propbank-amr-frame-arg-descr.txt
 
 # lightning
 lightning_logs/
+
+amr_data/

@@ -27,7 +27,18 @@ python -m unsupamr.fit \
     --data.target_lang de \
     --data.batch_size 2 \
     --model.vocab_path /home/ethanlmines/vocab.json \
-    --data.debug_subset true \
+    --data.debug_subset true 
+```
+
+## Prediction
+Required arguments to run the prediction module,
+- `--output_path any/output/result/path`
+- `--data.amr_version 3.0|2.0`
+- `--model.vocab_path /path/to/vocab.json`
+
+Example:
+```bash
+python -m unsupamr.predict --output_path prediction_output --data.amr_version 3.0 --model.vocab_path vocab.json
 ```
 
 ## Vocabulary Generation
