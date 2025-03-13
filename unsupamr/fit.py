@@ -5,10 +5,9 @@ from .cli import CustomCLI
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
 from .lightning_mods import TrainingMod
 from .data_mods import EuroParlDataModule
+from .constants import STOPPING_METRIC
 
 if __name__ == "__main__":
-
-    STOPPING_METRIC = "loss"
     model_callback = ModelCheckpoint(
         monitor=STOPPING_METRIC,
         mode='min',
@@ -32,4 +31,13 @@ if __name__ == "__main__":
         },
         run=False
     )
-    cli.trainer.fit(model=cli.model, datamodule=cli.datamodule)
+
+    best_checkpoint_callback = ModelCheckpoint(
+        monitor=STOPPING_METRIC,
+        mode='min',
+        filename=cli.parser.ckpt,
+        every_n_train_steps=10
+    )
+
+    cli.trainer_defaults['callbacks'].append(best_checkpoint_callback)
+    cli.trainer.fit(model=cli.model, datamodule=cli.datamodule, )

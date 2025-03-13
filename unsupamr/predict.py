@@ -1,3 +1,4 @@
+import torch
 from .cli import CustomCLI
 from. predict_mods import PredictMod
 from .data_mods import EuroParlDataModule, AMRDataModule
@@ -26,7 +27,13 @@ if __name__ == "__main__":
             },
         run = False,   
         )
-    
+
+    best_checkpoint = torch.load(cli.parser.ckpt)
+    print(f'weights before checkpoint load, {cli.model.embeddings.weight}')
+    cli.model.load_state_dict(best_checkpoint)
+    print(f'weights after checkpoint load, {cli.model.embeddings.weight}')
+    print(f't2a lm_head weights, {cli.model.t2a.lm_head.weight}')
+
     predictions = cli.trainer.predict(model=cli.model, datamodule=cli.datamodule)
 
     with open(cli.output_path, "w") as f:

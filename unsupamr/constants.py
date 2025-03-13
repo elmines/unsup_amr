@@ -33,3 +33,4 @@ Looks like an underscore but isn't.
 """
 
 AMR_DATA_DIR = 'amr_data'
+STOPPING_METRIC = "loss"

@@ -6,7 +6,7 @@ from transformers import MT5ForConditionalGeneration
 import torch
 # Local
 from .t2a import T2A
-from .constants import DEFAULT_SEQ_MODEL, DEFAULT_MAX_GRAPH_SIZE
+from .constants import DEFAULT_SEQ_MODEL, DEFAULT_MAX_GRAPH_SIZE, STOPPING_METRIC
 from .embeddings import expand_embedding, expand_lm_head, mult_embedding_lookup
 from .utils import VocabExt, load_vocab
 
@@ -55,7 +55,7 @@ class TrainingMod(L.LightningModule):
                           attention_mask=pred_attention_mask,
                           labels=batch['target_ids'])
         loss = output.loss
-        self.log("loss", loss)
+        self.log(STOPPING_METRIC, loss)
         return loss
 
     
