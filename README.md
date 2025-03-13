@@ -27,7 +27,7 @@ python -m unsupamr.fit \
     --data.target_lang de \
     --data.batch_size 2 \
     --model.vocab_path /home/ethanlmines/vocab.json \
-    --data.debug_subset true \
+    --data.debug_subset true 
 ```
 
 ## Prediction
