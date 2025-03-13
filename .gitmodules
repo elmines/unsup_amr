@@ -1,0 +1,6 @@
+[submodule "sembleu"]
+	path = sembleu
+	url = https://github.com/freesunshine0316/sembleu.git
+[submodule "amr-evaluation"]
+	path = amr-evaluation
+	url = https://github.com/mdtux89/amr-evaluation.git
