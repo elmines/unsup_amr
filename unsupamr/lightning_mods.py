@@ -6,14 +6,14 @@ from transformers import MT5ForConditionalGeneration
 import torch
 # Local
 from .t2a import T2A
-from .constants import DEFAULT_SEQ_MODEL, DEFAULT_MAX_GRAPH_SIZE
+from .constants import DEFAULT_SEQ_MODEL, DEFAULT_MAX_GRAPH_SIZE, DEFAULT_VOCAB_PATH
 from .embeddings import expand_embedding, expand_lm_head, mult_embedding_lookup
 from .utils import VocabExt, load_vocab
 
 
 class TrainingMod(L.LightningModule):
     def __init__(self,
-                 vocab_path: str,
+                 vocab_path: str = DEFAULT_VOCAB_PATH,
                  pretrained_model: str = DEFAULT_SEQ_MODEL,
                  temperature: float = 1.,
                  max_graph_size: int = DEFAULT_MAX_GRAPH_SIZE):

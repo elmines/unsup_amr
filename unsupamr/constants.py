@@ -1,4 +1,5 @@
 import enum
+import os
 
 @enum.unique
 class AmrCategory(enum.Enum):
@@ -21,6 +22,8 @@ class AmrCategory(enum.Enum):
     STOP = "stop"
 
 DEFAULT_SEQ_MODEL = "google/mt5-small"
+
+DEFAULT_VOCAB_PATH = os.path.join(os.path.dirname(__file__), "..", "vocab.json")
 
 DEFAULT_MAX_GRAPH_SIZE = 64
 

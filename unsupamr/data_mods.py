@@ -9,8 +9,8 @@ from .amr_preprocess import AMRInputIDDataset, AMRPreprocessor, amr_collate_fn
 class EuroParlDataModule(L.LightningDataModule):
 
     def __init__(self,
-                 source_lang: str,
-                 target_lang: str,
+                 source_lang: str = 'en',
+                 target_lang: str = 'en',
                  pretrained_model: str = DEFAULT_SEQ_MODEL,
                  batch_size: int = 2,
                  debug_subset: bool = False):
