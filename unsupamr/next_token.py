@@ -25,7 +25,7 @@ class NextTokensFactory:
         self.vf = {ent.id:ent.args for ent in vocab.amr_symbols if ent.category == AmrCategory.FRAME}
         self.label_idxs = {ent.id for ent in vocab.amr_symbols if ent.category == AmrCategory.LABEL}
         self.arg_idxs = {ent.id for ent in vocab.amr_symbols if ent.category == AmrCategory.ARG} # Only args, no inverse args yet
-        self.concept_idxs = set(vocab.pruned_english) - {vocab.eos_id, vocab.pad_id}
+        self.concept_idxs = vocab.pruned_english
         self.start_label_idx = next(ent.id for ent in vocab.amr_symbols if ent.token == "<R0>")
         self.stop_token_idx = next(ent.id for ent in vocab.amr_symbols if ent.category == AmrCategory.STOP)
         self.end_of_sequence_idx = vocab.eos_id

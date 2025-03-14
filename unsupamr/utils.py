@@ -95,6 +95,8 @@ class VocabExt:
                 args=[arg_map[s] for s in str_args]
             ))
             vocab_index += 1
+        # Have to subtract this before doing those post-increments
+        vocab_index -= 1
         amr_entries.append(AMRSymbol("<stop>", id=(vocab_index := vocab_index + 1), embed_id=None, category=AmrCategory.STOP))
         amr_entries.extend(AMRSymbol(f"<R{i}>", id=(vocab_index := vocab_index + 1), embed_id=None, category=AmrCategory.LABEL) for i in range(max_nodes))
 

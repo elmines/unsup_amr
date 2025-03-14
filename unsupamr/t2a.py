@@ -2,7 +2,7 @@
 from typing import Tuple
 # 3rd Party
 import torch
-from transformers import MT5ForConditionalGeneration
+from transformers import T5ForConditionalGeneration
 from transformers.cache_utils import DynamicCache, EncoderDecoderCache
 # Local
 from .constants import DEFAULT_MAX_GRAPH_SIZE
@@ -16,7 +16,7 @@ class T2A(torch.nn.Module):
     """
 
     def __init__(self,
-                 pretrained: MT5ForConditionalGeneration,
+                 pretrained: T5ForConditionalGeneration,
                  vocab_ext: VocabExt,
                  temperature: float = 1.,
                  max_iterations: int = DEFAULT_MAX_GRAPH_SIZE):
