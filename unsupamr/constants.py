@@ -21,7 +21,9 @@ class AmrCategory(enum.Enum):
     UNKNOWN = "amr-unknown"
     STOP = "stop"
 
-DEFAULT_SEQ_MODEL = "google/mt5-small"
+DEFAULT_SEQ_MODEL = "google-t5/t5-small"
+
+DEFAULT_PROPBANK = os.path.join(os.path.dirname(__file__), "..", "propbank-amr-frame-arg-descr.txt")
 
 DEFAULT_VOCAB_PATH = os.path.join(os.path.dirname(__file__), "..", "vocab.json")
 

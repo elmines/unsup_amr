@@ -6,14 +6,10 @@
 .vscode/
 
 *.json
-!vocab.json
 
 # Prefixes Ethan likes to use for junk files
 ethan*
 scrap*
-
-# AMR files we don't want to accidentally commit
-propbank-amr-frame-arg-descr.txt
 
 # lightning
 lightning_logs/
