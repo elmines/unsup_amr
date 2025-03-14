@@ -1,4 +1,5 @@
 import enum
+import os
 
 @enum.unique
 class AmrCategory(enum.Enum):
@@ -20,7 +21,11 @@ class AmrCategory(enum.Enum):
     UNKNOWN = "amr-unknown"
     STOP = "stop"
 
-DEFAULT_SEQ_MODEL = "google/mt5-small"
+DEFAULT_SEQ_MODEL = "google-t5/t5-small"
+
+DEFAULT_PROPBANK = os.path.join(os.path.dirname(__file__), "..", "propbank-amr-frame-arg-descr.txt")
+
+DEFAULT_BATCH_SIZE = 4
 
 DEFAULT_MAX_GRAPH_SIZE = 64
 

@@ -13,7 +13,7 @@ class EuroparlPreprocessor:
     - Tokenizes text
     - Applies padding and truncation
     """
-    def __init__(self, model_name=DEFAULT_SEQ_MODEL, source_lang="en", target_lang="es", sample_subset=False):
+    def __init__(self, model_name=DEFAULT_SEQ_MODEL, source_lang="en", target_lang="en", sample_subset=False):
         """
         Initialize with model name and source/target languages.
         Args:
@@ -24,6 +24,9 @@ class EuroparlPreprocessor:
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
 
         lang_datamap = {
+            ("en", "en") : "en-es",
+            ("es", "es") : "en-es",
+            ("de", "de") : "de-en",
             ("en", "de") : "de-en",
             ("de", "en") : "de-en",
             ("es", "de") : "de-es",
@@ -44,7 +47,7 @@ class EuroparlPreprocessor:
     def preprocess(self, sample: Dict) -> Dict:
         """Tokenizes input and target sentences."""
         input_text = sample["translation"][self.source_lang]  # Source language input
-        target_text = sample["translation"].get(self.target_lang, "")  # Target language translation
+        target_text = sample["translation"][self.target_lang]  # Target language translation
         
         return {
             "input_ids": self.tokenizer(input_text, padding="max_length", truncation=True, return_tensors="pt")["input_ids"],

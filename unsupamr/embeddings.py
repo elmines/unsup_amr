@@ -9,9 +9,8 @@ from .utils import VocabExt
 def expand_lm_head(head: torch.nn.Linear, vocab: VocabExt) -> torch.nn.Linear:
     
     old_num_tokens, hidden_dim = head.weight.shape
-    new_num_tokens = old_num_tokens + len(vocab.amr_symbols)
     
-    new_head = torch.nn.Linear(hidden_dim, new_num_tokens, bias=False)
+    new_head = torch.nn.Linear(hidden_dim, vocab.new_vocab_size, bias=False)
     
     with torch.no_grad():
         new_head.weight[:old_num_tokens] = head.weight  # Copy old weightss
@@ -30,7 +29,7 @@ def expand_embedding(embedding: torch.nn.Embedding, vocab: VocabExt) -> torch.nn
     old_weight_mat = embedding.weight
 
     old_vocab_size, embedding_size = old_weight_mat.shape
-    new_vocab_size = old_vocab_size + len(amr_entries)
+    new_vocab_size = vocab.new_vocab_size
 
     new_embedding = torch.nn.Embedding(new_vocab_size, embedding_size)
     with torch.no_grad():

@@ -15,18 +15,12 @@ Pytorch Lightning has many optional CLI params:
 python -m unsupamr.fit --help
 ```
 
-These are the mandatory ones I've added though:
-- `--data.source_lang en|es|de`
-- `--data.dest_lang en|es|de`
-- `--model.vocab_path /path/to/vocab.json`
-
+At least right now we've managed to make our training CLI arguments all optional.
+`--data.batch_size` and `--data.debug_subset` are handy though for light testing:
 Here's a sample run:
 ```bash
 python -m unsupamr.fit \
-    --data.source_lang en \
-    --data.target_lang de \
-    --data.batch_size 2 \
-    --model.vocab_path /home/ethanlmines/vocab.json \
+    --data.batch_size 4 \
     --data.debug_subset true 
 ```
 
@@ -34,11 +28,10 @@ python -m unsupamr.fit \
 Required arguments to run the prediction module,
 - `--output_path any/output/result/path`
 - `--data.amr_version 3.0|2.0`
-- `--model.vocab_path /path/to/vocab.json`
 
 Example:
 ```bash
-python -m unsupamr.predict --output_path prediction_output --data.amr_version 3.0 --model.vocab_path vocab.json
+python -m unsupamr.predict --output_path prediction_output.txt --data.amr_version 3.0 
 ```
 
 ## Vocabulary Generation

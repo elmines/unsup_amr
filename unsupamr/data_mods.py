@@ -3,16 +3,16 @@ import lightning as L
 from torch.utils.data import DataLoader
 # Local
 from .preprocess import EuroparlPreprocessor, EuroparlTranslationDataset, collate_fn
-from .constants import DEFAULT_SEQ_MODEL, AMR_DATA_DIR
+from .constants import DEFAULT_SEQ_MODEL, AMR_DATA_DIR, DEFAULT_BATCH_SIZE
 from .amr_preprocess import AMRInputIDDataset, AMRPreprocessor, amr_collate_fn
 
 class EuroParlDataModule(L.LightningDataModule):
 
     def __init__(self,
-                 source_lang: str,
-                 target_lang: str,
+                 source_lang: str = 'en',
+                 target_lang: str = 'en',
                  pretrained_model: str = DEFAULT_SEQ_MODEL,
-                 batch_size: int = 2,
+                 batch_size: int = DEFAULT_BATCH_SIZE,
                  debug_subset: bool = False):
         super().__init__()
         self.save_hyperparameters()
@@ -45,7 +45,7 @@ class AMRDataModule(L.LightningDataModule):
                  amr_version: str,
                  pretrained_model: str = DEFAULT_SEQ_MODEL,
                  data_dir: str = AMR_DATA_DIR,
-                 batch_size: int = 8):
+                 batch_size: int = DEFAULT_BATCH_SIZE):
         super().__init__()
         self.save_hyperparameters()
 
