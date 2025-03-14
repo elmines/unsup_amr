@@ -25,7 +25,7 @@ DEFAULT_SEQ_MODEL = "google-t5/t5-small"
 
 DEFAULT_PROPBANK = os.path.join(os.path.dirname(__file__), "..", "propbank-amr-frame-arg-descr.txt")
 
-DEFAULT_VOCAB_PATH = os.path.join(os.path.dirname(__file__), "..", "vocab.json")
+DEFAULT_BATCH_SIZE = 4
 
 DEFAULT_MAX_GRAPH_SIZE = 64
 

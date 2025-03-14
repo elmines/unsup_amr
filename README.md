@@ -20,7 +20,7 @@ At least right now we've managed to make our training CLI arguments all optional
 Here's a sample run:
 ```bash
 python -m unsupamr.fit \
-    --data.batch_size 2 \
+    --data.batch_size 4 \
     --data.debug_subset true 
 ```
 
@@ -28,9 +28,8 @@ python -m unsupamr.fit \
 Required arguments to run the prediction module,
 - `--output_path any/output/result/path`
 - `--data.amr_version 3.0|2.0`
-- `--model.vocab_path /path/to/vocab.json`
 
 Example:
 ```bash
-python -m unsupamr.predict --output_path prediction_output --data.amr_version 3.0 
+python -m unsupamr.predict --output_path prediction_output.txt --data.amr_version 3.0 
 ```
