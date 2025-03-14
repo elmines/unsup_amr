@@ -12,9 +12,8 @@ class NextTokens:
     def __init__(self, vocab: VocabExt):
 
         self.vf = vocab.vf
-        self.verb_idxs = set(self.vf.keys())  # FIXME: this is redundant with self.vf. Don't need.
         """
-        A hashset of vocab indices corresponding to verbs.
+        A hashset of vocab indices corresponding to verb frames, corresponding to their supported arguments.
         """
 
         self.label_idxs = vocab.label_idxs
@@ -31,9 +30,9 @@ class NextTokens:
         """
         self.start_label_idx = vocab.start_label_idx
         self.stop_token_idx = vocab.stop_token_idx
-        self.end_of_sequence_idx = vocab.end_of_sequence_idx
-        self.pad_idx = vocab.pad_idx
-        self.vocab_size = vocab.vocab_size
+        self.end_of_sequence_idx = vocab.eos_id
+        self.pad_idx = vocab.pad_id
+        self.vocab_size = vocab.new_vocab_size
 
         # Precomputed constants
         # FIXME: Don't recompute these for every new NextTokens object we make
@@ -133,7 +132,7 @@ class NextTokens:
             mask[self.pad_idx] = 0
             return mask 
 
-        if token_id in self.verb_idxs:
+        if token_id in self.vf:
             self.frames_queue.append(self.seq_idx)
             self.args_used[self.seq_idx] = set()
             # Special case--this is our very first verb
@@ -198,25 +197,6 @@ class NextTokens:
 
         raise ValueError(f"Invalid token for context: {token_id}")
 
-
-def process_verbs(file_path) -> Dict[str, List[str]]:
-    verb_frames = defaultdict(set)
-    f = open(file_path,"r")
-    data = json.load(f)
-    for token_map in data['amr_symbols']:
-        if token_map["category"] == "frame":
-            for arg in token_map.get("args", []):
-                verb_frames[token_map.get("token")].add(arg)
-    return verb_frames
-
-def process_variables(file_path) -> Set[str]:
-    variables = set()
-    f = open(file_path,"r")
-    data = json.load(f)
-    for token_map in data['amr_symbols']:
-        if token_map["category"] == "label":
-            variables.add(token_map.get("token"))
-    return variables
 
 def validate_sequence(vocab_ext: VocabExt, desired: List[int]):
     nt = NextTokens(vocab_ext)
