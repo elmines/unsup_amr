@@ -1,21 +1,22 @@
-import torch
+# 3rd Party
 import lightning as L
-from transformers import MT5ForConditionalGeneration
+from transformers import T5ForConditionalGeneration, T5TokenizerFast
+# Local
 from .t2a import T2A
 from .embeddings import expand_embedding, expand_lm_head
-from .utils import VocabExt, load_vocab
+from .utils import VocabExt
 from .constants import DEFAULT_SEQ_MODEL, DEFAULT_MAX_GRAPH_SIZE
 
 class PredictMod(L.LightningModule):
-    def __init__(self, vocab_path: str, 
+    def __init__(self, 
                pretrained_model: str = DEFAULT_SEQ_MODEL,
                temperature: float = 1.,
                max_graph_size: int = DEFAULT_MAX_GRAPH_SIZE):
         super().__init__()
         self.save_hyperparameters()
 
-        vocab_ext = VocabExt.from_json(load_vocab(vocab_path))
-        pretrained_a = MT5ForConditionalGeneration.from_pretrained(pretrained_model)
+        pretrained_a = T5ForConditionalGeneration.from_pretrained(pretrained_model)
+        vocab_ext = VocabExt(pretrained_a, T5TokenizerFast.from_pretrained(pretrained_model))
         self.embeddings = expand_embedding(pretrained_a.get_input_embeddings(), vocab_ext)
         pretrained_a.set_input_embeddings(self.embeddings)
         pretrained_a.lm_head = expand_lm_head(pretrained_a.lm_head, vocab_ext)
