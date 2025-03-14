@@ -7,91 +7,45 @@ import math
 from collections import deque 
 # Local
 from .utils import VocabExt
-from .constants import AmrCategory
-"""
-Since we’re doing breadth-first search, we can enforce the following constraints:
-
-For a given verb node, we must predict all its argument edges in sequence. That is, if the verb supports :ARG0-3 but we’re only predicting :ARG1 and :ARG3, we should have a substring in the output that looks something like “<R6> :ARG1 <R12> :ARG3 <R9>”
-
-A verb node should have at least one argument
-"""
-
-class NextTokensFactory:
-    """
-    Class that already has necessary preprocessing done for the NextTokens object
-    """
-
-    def __init__(self, vocab: VocabExt):
-        self.vf = {ent.id:ent.args for ent in vocab.amr_symbols if ent.category == AmrCategory.FRAME}
-        self.label_idxs = {ent.id for ent in vocab.amr_symbols if ent.category == AmrCategory.LABEL}
-        self.arg_idxs = {ent.id for ent in vocab.amr_symbols if ent.category == AmrCategory.ARG} # Only args, no inverse args yet
-        self.concept_idxs = vocab.pruned_english
-        self.start_label_idx = next(ent.id for ent in vocab.amr_symbols if ent.token == "<R0>")
-        self.stop_token_idx = next(ent.id for ent in vocab.amr_symbols if ent.category == AmrCategory.STOP)
-        self.end_of_sequence_idx = vocab.eos_id
-        self.pad_idx = vocab.pad_id
-        self.vocab_size = max(ent.id for ent in vocab.amr_symbols) + 1
-
-        assert self.start_label_idx is not None
-        assert self.stop_token_idx is not None
-
-    def build(self) -> NextTokens:
-        return NextTokens(
-            vf=self.vf,
-            label_idxs=self.label_idxs,
-            arg_idxs=self.arg_idxs,
-            concept_idxs=self.concept_idxs,
-            start_label_idx=self.start_label_idx,
-            stop_token_idx=self.stop_token_idx,
-            end_of_sequence_idx=self.end_of_sequence_idx,
-            pad_idx=self.pad_idx,
-            vocab_size=self.vocab_size
-        )
-
-
 
 class NextTokens:
-    def __init__(self,
-                vf,
-                label_idxs,
-                arg_idxs,
-                concept_idxs, 
-                start_label_idx,
-                stop_token_idx,
-                end_of_sequence_idx,
-                pad_idx,
-                vocab_size
-                #  verb_frames, verb_idxs, label_idxs, arg_idxs, concept_idxs, vocab
-                ):
+    def __init__(self, vocab: VocabExt):
+
+        self.vf = vocab.vf
+        self.verb_idxs = set(self.vf.keys())  # FIXME: this is redundant with self.vf. Don't need.
         """
-        verb_idxs: A hashset of vocab indices corresponding to verbs.
-        label_idxs: A hashset of vocab indices corresponding to labels.
-        arg_idxs: A hashset of vocab indices corresponding to argument edges.
-        concept_idxs: A hashset of vocab indices corresponding to concept nodes.
+        A hashset of vocab indices corresponding to verbs.
         """
 
-        self.vf = vf
-        self.verb_idxs = set(self.vf.keys())  # FIXME: this is redundant with self.vf. Don't need.
-        self.label_idxs = label_idxs
-        self.arg_idxs = arg_idxs 
-        self.concept_idxs = concept_idxs
-        self.start_label_idx = start_label_idx
-        self.stop_token_idx = stop_token_idx
-        self.end_of_sequence_idx = end_of_sequence_idx
-        self.pad_idx = pad_idx
-        self.vocab_size = vocab_size
+        self.label_idxs = vocab.label_idxs
+        """
+        A hashset of vocab indices corresponding to labels.
+        """
+        self.arg_idxs = vocab.arg_idxs 
+        """
+        A hashset of vocab indices corresponding to argument edges.
+        """
+        self.concept_idxs = vocab.concept_idxs
+        """
+        A hashset of vocab indices corresponding to concept nodes.
+        """
+        self.start_label_idx = vocab.start_label_idx
+        self.stop_token_idx = vocab.stop_token_idx
+        self.end_of_sequence_idx = vocab.end_of_sequence_idx
+        self.pad_idx = vocab.pad_idx
+        self.vocab_size = vocab.vocab_size
 
         # Precomputed constants
         # FIXME: Don't recompute these for every new NextTokens object we make
-        self.__pad_mask = torch.where(torch.arange(0, vocab_size) == self.pad_idx, 0., -math.inf)
+        self.__pad_mask = torch.where(torch.arange(0, self.vocab_size) == self.pad_idx, 0., -math.inf)
         self.__error_mask = self.__pad_mask
 
         # Allow any verb frame
         self.__vf_mask = torch.tensor([
-            0. if (k in self.vf) else -math.inf for k in range(vocab_size)
+            0. if (k in self.vf) else -math.inf for k in range(self.vocab_size)
         ])
         self.__vf_or_concept_mask = torch.tensor([
-            0. if (k in self.concept_idxs or k in self.vf) else -math.inf for k in range(vocab_size)
+            0. if (k in self.concept_idxs or k in self.vf) else -math.inf for k in range(self.vocab_size)
         ])
         
         # State variables
@@ -263,3 +217,40 @@ def process_variables(file_path) -> Set[str]:
         if token_map["category"] == "label":
             variables.add(token_map.get("token"))
     return variables
+
+def validate_sequence(vocab_ext: VocabExt, desired: List[int]):
+    nt = NextTokens(vocab_ext)
+    mask = nt.nextTokens()
+    for _, tok_id in enumerate(desired):
+        assert mask[tok_id] == 0
+        mask = nt.nextTokens(tok_id)
+
+if __name__ == "__main__":
+    from transformers import T5ForConditionalGeneration, T5TokenizerFast
+    from .constants import DEFAULT_SEQ_MODEL
+    vocab_ext = VocabExt(T5ForConditionalGeneration.from_pretrained(DEFAULT_SEQ_MODEL), T5TokenizerFast.from_pretrained(DEFAULT_SEQ_MODEL))
+
+    eos_id = vocab_ext.eos_id
+    pad_id = vocab_ext.pad_id
+
+    def id_from_token(token: str):
+        return next(filter(lambda sym: sym.token == token, vocab_ext.amr_symbols)).id
+    tell_01 = id_from_token("tell-01")
+    wash_01 = id_from_token("wash-01")
+    arg0 = id_from_token(":ARG0")
+    arg1 = id_from_token(":ARG1")
+    arg2 = id_from_token(":ARG2")
+    r0 = vocab_ext.start_label_idx
+    r1 = r0 + 1
+    r2 = r0 + 2
+    r3 = r0 + 3
+    r4 = r0 + 4
+    stop = vocab_ext.stop_token_idx
+
+    # Test Case A
+    # Desired: <R0> tell-01 :ARG0 <R1> concept_a :ARG1 <R2> wash-01 :ARG2 <R3> concept_b <stop> <R2> :ARG0 <R3> :ARG1 <R4> concept_c <stop> EOS
+    concept_a = 259
+    concept_b = 260
+    concept_c = 261
+    desired = [r0, tell_01, arg0, r1, concept_a, arg1, r2, wash_01, arg2, r3, concept_b, stop, r2, arg0, r3,  arg1, r4, concept_c, stop, eos_id]
+    validate_sequence(vocab_ext, desired)

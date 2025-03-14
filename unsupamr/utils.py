@@ -103,12 +103,20 @@ class VocabExt:
         self.eos_id        : int             = get_special_token("eos_token", tokenizer)
         self.pad_id        : int             = get_special_token("pad_token", tokenizer)
         self.amr_symbols   : List[AMRSymbol] = amr_entries
+        self.stop_token_idx: int             = next(ent for ent in self.amr_symbols if ent.category == AmrCategory.STOP).id
         self.new_vocab_size: int             = lm_head_size + len(amr_entries)
         self.pruned_english: Set[int]        = set(range(len(tokenizer.get_vocab()))) - {self.eos_id, self.pad_id}
 
-if __name__ == "__main__":
-    from transformers import T5ForConditionalGeneration, T5TokenizerFast
-    from .constants import DEFAULT_SEQ_MODEL
-    pretrained_a = T5ForConditionalGeneration.from_pretrained(DEFAULT_SEQ_MODEL)
-    vocab_ext = VocabExt(pretrained_a, T5TokenizerFast.from_pretrained(DEFAULT_SEQ_MODEL))
-    print("Made the vocab")
+        # TODO: Get rid of redundant fields. Doing this right now for compatibility with nextTokens
+        self.vf = {ent.id:ent.args for ent in self.amr_symbols if ent.category == AmrCategory.FRAME}
+        self.label_idxs = {ent.id for ent in self.amr_symbols if ent.category == AmrCategory.LABEL}
+        self.arg_idxs = {ent.id for ent in self.amr_symbols if ent.category == AmrCategory.ARG} # Only args, no inverse args yet
+        self.concept_idxs = self.pruned_english
+        self.start_label_idx = next(ent.id for ent in self.amr_symbols if ent.token == "<R0>")
+        self.stop_token_idx = next(ent.id for ent in self.amr_symbols if ent.category == AmrCategory.STOP)
+        self.end_of_sequence_idx = self.eos_id
+        self.pad_idx = self.pad_id
+        self.vocab_size = self.new_vocab_size
+
+        assert self.start_label_idx is not None
+        assert self.stop_token_idx is not None
