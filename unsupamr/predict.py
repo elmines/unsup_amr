@@ -28,7 +28,7 @@ if __name__ == "__main__":
         run = False,   
         )
 
-    best_checkpoint = torch.load(cli.parser.ckpt)
+    best_checkpoint = torch.load(cli.parser.parse_args().ckpt)
     print(f'weights before checkpoint load, {cli.model.embeddings.weight}')
     cli.model.load_state_dict(best_checkpoint)
     print(f'weights after checkpoint load, {cli.model.embeddings.weight}')

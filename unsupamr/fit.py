@@ -35,8 +35,8 @@ if __name__ == "__main__":
     best_checkpoint_callback = ModelCheckpoint(
         monitor=STOPPING_METRIC,
         mode='min',
-        filename=cli.parser.ckpt,
-        every_n_train_steps=10
+        filename=cli.parser.parse_args().ckpt,
+        every_n_train_steps=10 # TODO: remove this
     )
 
     cli.trainer_defaults['callbacks'].append(best_checkpoint_callback)
