@@ -1,18 +1,23 @@
 """
 The script we use for training runs
 """
+# STL
+import os
+import time
+# Local
 from .cli import CustomCLI
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
+from lightning.pytorch.loggers import CSVLogger
 from .lightning_mods import TrainingMod
 from .data_mods import EuroParlDataModule
+from .constants import STOPPING_METRIC
 
 if __name__ == "__main__":
-
-    STOPPING_METRIC = "loss"
-    model_callback = ModelCheckpoint(
+    best_checkpoint_callback = ModelCheckpoint(
         monitor=STOPPING_METRIC,
         mode='min',
-        filename="{epoch:02d}-{loss:.3f}"
+        filename="best-{epoch:02d}-{loss:.3f}",
+        every_n_train_steps=1000, # TODO: Make thsi configurable?
     )
     early_stopping_callback = EarlyStopping(
         monitor=STOPPING_METRIC,
@@ -25,11 +30,18 @@ if __name__ == "__main__":
         datamodule_class=EuroParlDataModule, subclass_mode_data=False,
         trainer_defaults={
             "max_epochs": 10,
+            "logger": dict(
+                class_path="lightning.pytorch.loggers.CSVLogger",
+                init_args=dict(
+                    save_dir=os.path.join(os.path.dirname(__file__), ".."),
+                )
+            ),
             "callbacks": [
-                model_callback,
-                early_stopping_callback
+                early_stopping_callback,
+                best_checkpoint_callback
             ]
         },
         run=False
     )
-    cli.trainer.fit(model=cli.model, datamodule=cli.datamodule)
+
+    cli.trainer.fit(model=cli.model, datamodule=cli.datamodule, )
