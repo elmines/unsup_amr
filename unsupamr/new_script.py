@@ -209,3 +209,16 @@ if __name__ == "__main__":
     print("\nCase 4: Ends with just an :ARG edge")
     print("Input:", tokens4)
     print("Output:", bfs_to_penman(tokens4))
+
+    # Case 5: Ends with a concept
+    tokens5 = ['<R0>', 'tell-01', ':ARG0', '<R1>', 'you', ':ARG1', '<R3>', 'secret']
+    print("\nCase 5: Ends with a verb frame")
+    print("Input:", tokens5)
+    print("Output:", bfs_to_penman(tokens5))
+
+    # Case 6: Ends in a <stop>
+    tokens6 = ["<R0>", "tell-01", ":ARG0", "<R1>", "you", ":ARG1", "<R3>", "wash-01", ":ARG2", "<R2>", "i", "<stop>",
+               "<R3>", ":ARG0", "<R2>", ":ARG1", "<R4>", "dog", "<stop>"]
+    print("\nCase 6: Ends with a <stop>")
+    print("Input:", tokens6)
+    print("Output:", bfs_to_penman(tokens6))
