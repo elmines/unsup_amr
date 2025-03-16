@@ -39,3 +39,6 @@ Looks like an underscore but isn't.
 
 AMR_DATA_DIR = 'amr_data'
 STOPPING_METRIC = "loss"
+
+LIGHTNING_LOGS_DIR = 'lightning_logs'
+CHECKPOINT_DIR = 'checkpoints'

@@ -23,7 +23,7 @@ if __name__ == "__main__":
     best_checkpoint_callback = ModelCheckpoint(
         monitor=STOPPING_METRIC,
         mode='min',
-        filename=f'best_{int(time.time())}.ckpt',
+        filename=f'best_{int(time.time())}',
         every_n_train_steps=10 # TODO: remove this
     )
 
