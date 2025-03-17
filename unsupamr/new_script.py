@@ -1,20 +1,18 @@
-import re, json
+import re, json, glob
 from collections import defaultdict
+from .constants import DEFAULT_SEQ_MODEL
+from .utils import VocabExt
+from transformers import T5ForConditionalGeneration, T5TokenizerFast
 
-def load_vocab(vocab_path):
-    with open(vocab_path, 'r') as file:
-        data = json.load(file)
+
     
-    # Create a mapping from token IDs to tokens for quick lookup
-    id_to_token = {symbol['id']: symbol['token'] for symbol in data['amr_symbols']}
 
-    return id_to_token
 
-def convert_ids_to_tokens(output_ids, id_to_token):
-    # Convert output IDs to tokens using the mapping, or return "<UNK>" if not found
-    return [id_to_token.get(i, "<UNK>") for i in output_ids]
+def is_label(j, tokens):
+    #here j is actually i+1
+    return (not tokens[j].startswith('<') and not tokens[j].startswith(':'))
 
-def bfs_to_penman(tokens):
+def bfs_to_penman(vocab_ids, vocab_exts):
     """
     Convert BFS token sequence to Penman notation, handling truncated sequences.
     
@@ -24,6 +22,17 @@ def bfs_to_penman(tokens):
     Returns:
         String in Penman notation
     """
+
+    # Get original vocabulary mapping
+    id_to_token = {v: k for k, v in vocab_ext.tokenizer.get_vocab().items()}
+
+    # Extend with AMR symbols
+    for amr_symbol in vocab_ext.amr_symbols:
+        id_to_token[amr_symbol.id] = amr_symbol.token
+
+    #getting the token list from vocab ids using the vocab_ext
+    tokens = [id_to_token.get(i, "<UNK>") for i in vocab_ids]
+
     # Check if sequence appears to be truncated (no <stop> at the end)
     truncated = '<eos>' not in tokens and '</s>' not in tokens and not tokens[-1] == '<stop>'
     
@@ -37,7 +46,7 @@ def bfs_to_penman(tokens):
         if re.match(r'<R\d+>', tokens[i]):
             node_id = tokens[i]
             # Check if this node is followed by a label
-            if i+1 < len(tokens) and not tokens[i+1].startswith('<') and not tokens[i+1].startswith(':'):
+            if i+1 < len(tokens) and is_label(i+1, tokens):
                 nodes[node_id] = tokens[i+1]
                 i += 2
             else:
@@ -47,7 +56,6 @@ def bfs_to_penman(tokens):
     
     # Second pass: Build edges with special handling for truncated sequences
     active_node = None
-    pending_edge = None
     i = 0
     
     while i < len(tokens):
@@ -58,7 +66,6 @@ def bfs_to_penman(tokens):
             # If this is the start of the sequence or follows a <stop>, it's the active node
             if i == 0 or (i > 0 and tokens[i-1] == '<stop>'):
                 active_node = node_id
-                pending_edge = None
                 i += 1
             # If this follows an edge label, it's a target node
             elif i > 0 and tokens[i-1].startswith(':'):
@@ -73,23 +80,21 @@ def bfs_to_penman(tokens):
                 if active_node:
                     edge_label = tokens[i-1]
                     edges[active_node].append((node_id, edge_label))
-                    pending_edge = None
+                else:
+                    print("Active Node not Found", file=sys.stderr)
+
                 i += 1
             # Skip node definition (already handled in first pass)
-            elif i+1 < len(tokens) and not tokens[i+1].startswith('<') and not tokens[i+1].startswith(':'):
+            elif i+1 < len(tokens) and is_label(i+1, tokens):
                 i += 2
             else:
                 i += 1
         # Edge label (e.g., :ARG0)
         elif tokens[i].startswith(':'):
-            # Case 4: If truncated and ends with just an edge, don't record it
-            if not (truncated and i == len(tokens) - 1):
-                pending_edge = tokens[i]
             i += 1
         # <stop> token
         elif tokens[i] == '<stop>':
             active_node = None
-            pending_edge = None
             i += 1
         # Other tokens
         else:
@@ -136,73 +141,64 @@ def bfs_to_penman(tokens):
     
     return build_penman(root) if root else "()"
 
+
+    
+
 # Example usage
 if __name__ == "__main__":
 
-    # id_to_token = load_vocab("vocab.json")
+    vocab_ext = VocabExt(T5ForConditionalGeneration.from_pretrained(DEFAULT_SEQ_MODEL), T5TokenizerFast.from_pretrained(DEFAULT_SEQ_MODEL))
 
-    # #over the whole predicted_output file
-    # with open('predition_output.txt', 'r') as predicted_file:
-    #     for each in predicted_file:
-    #         bfs_tokens = convert_ids_to_tokens(each, id_to_token)
-    #         print(bfs_tokens)
-    #         penman_notation = bfs_to_penman(bfs_tokens)
-    #         print(penman_notation)
-    #         break
-          
-
-
-
-    # Load vocabulary and convert IDs to tokens (if needed)
     try:
-        id_to_token = load_vocab("vocab.json")
-        
-        output_ids = [258872, 257953, 258833, 258873, 227227, 258835, 258875, 258572, 
-                      258837, 258874, 123457, 258853, 258875, 258833, 258874, 258835, 
-                      258876, 123456, 258853]
-        
-        bfs_tokens0 = convert_ids_to_tokens(output_ids, id_to_token)
-        penman_notation0 = bfs_to_penman(bfs_tokens0)
-        print(penman_notation0)
+        result = ""
+        # #over the whole predicted_output file
+        files = glob.glob('*output.txt')
+        if len(files) != 1:
+            raise FileNotFoundError("Expected exactly one file ending with 'output.txt' .")
+
+        with open(files[0], 'r') as predicted_file:
+            for vocab_ids in predicted_file:
+                penman_notation = bfs_to_penman(vocab_ids, vocab_ext)
+                result += f"{penman_notation}\n"
+        print(result)
+
     except Exception as e:
-        print(f"Error with vocab conversion: {e}")
-    
-    # Test with direct token sequences
-    bfs_tokens = ['<R0>', 'tell-01', ':ARG0', '<R1>', 'you', ':ARG1', '<R3>', 
-                 'wash-01', ':ARG2', '<R2>', 'i', '<stop>', '<R3>', ':ARG0', 
-                 '<R2>', ':ARG1', '<R4>', 'dog', '<stop>']
-    
-    penman_notation = bfs_to_penman(bfs_tokens)
-    print(penman_notation)
+        print(f"Error with vocab conversion: {e}")    
+   
 
-    # Another example
-    bfs_tokens1 = ['<R0>', 'want-01', ':ARG0', '<R1>', 'person', ':ARG1', '<R2>', 
-                  'eat-01', '<stop>', '<R2>', ':ARG0', '<R1>', ':ARG1', '<R3>', 
-                  'food', '<stop>']
 
-    penman_notation1 = bfs_to_penman(bfs_tokens1)
-    print(penman_notation1)
+    #Trash testcases as we shifted to giving vocab ids to our function
 
-    # Test truncation edge cases
-    print("\nTesting truncation handling scenarios:")
+    # # Test with direct token sequences
+    # bfs_tokens = ['<R0>', 'tell-01', ':ARG0', '<R1>', 'you', ':ARG1', '<R3>', 
+    #              'wash-01', ':ARG2', '<R2>', 'i', '<stop>', '<R3>', ':ARG0', 
+    #              '<R2>', ':ARG1', '<R4>', 'dog', '<stop>']
     
-    # Case 1: Ends with a new node label
-    tokens1 = ['<R0>', 'tell-01', ':ARG0', '<R1>', 'you', ':ARG1', '<R3>']
-    print("\nCase 1: Ends with a new node label")
-    print("Input:", tokens1)
-    print("Output:", bfs_to_penman(tokens1))
+    # penman_notation = bfs_to_penman(bfs_tokens)
+    # print(penman_notation)
+
+    # # Another example
+    # bfs_tokens1 = ['<R0>', 'want-01', ':ARG0', '<R1>', 'person', ':ARG1', '<R2>', 
+    #               'eat-01', '<stop>', '<R2>', ':ARG0', '<R1>', ':ARG1', '<R3>', 
+    #               'food', '<stop>']
+
+    # penman_notation1 = bfs_to_penman(bfs_tokens1)
+    # print(penman_notation1)
+
+    # # Test truncation edge cases
+    # print("\nTesting truncation handling scenarios:")
     
-    # Case 2: Ends with an existing node label
-    tokens2 = ['<R0>', 'tell-01', ':ARG0', '<R1>', 'you', ':ARG1', '<R1>']
-    print("\nCase 2: Ends with an existing node label")
-    print("Input:", tokens2)
-    print("Output:", bfs_to_penman(tokens2))
+    # # Case 1: Ends with a new node label
+    # tokens1 = ['<R0>', 'tell-01', ':ARG0', '<R1>', 'you', ':ARG1', '<R3>']
+    # print("\nCase 1: Ends with a new node label")
+    # print("Input:", tokens1)
+    # print("Output:", bfs_to_penman(tokens1))
     
-    # Case 3: Ends with a verb frame
-    tokens3 = ['<R0>', 'tell-01', ':ARG0', '<R1>', 'you', ':ARG1', '<R3>', 'eat-01']
-    print("\nCase 3: Ends with a verb frame")
-    print("Input:", tokens3)
-    print("Output:", bfs_to_penman(tokens3))
+    # # Case 2: Ends with an existing node label
+    # tokens2 = ['<R0>', 'tell-01', ':ARG0', '<R1>', 'you', ':ARG1', '<R1>']
+    # print("\nCase 2: Ends with an existing node label")
+    # print("Input:", tokens2)
+    # print("Output:", bfs_to_penman(tokens2))
     
     # Case 4: Ends with just an :ARG edge
     tokens4 = ['<R0>', 'tell-01', ':ARG0', '<R1>', 'you', ':ARG1']

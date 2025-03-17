@@ -42,6 +42,8 @@ class VocabExt:
                  tokenizer: T5Tokenizer,
                  propbank_path: os.PathLike = DEFAULT_PROPBANK,
                  max_nodes: int = 25):
+        self.tokenizer = tokenizer
+
         lm_head_size = model.lm_head.weight.shape[0]
 
         # Tuples of (symbol, embedding_id, type_name, args)
