@@ -1,49 +1,22 @@
 # Unsupervised AMR
 Training of an AMR parser without labelled samples
 
-## Dependencies
+## Getting Started
 
 ```bash
+git clone --recurse-submodules https://github.com/elmines/unsup_amr.git
+# Or if you didn't read these instructions before cloning:
+# git submodule update --init --recursive
 conda env create -f environment.yml
-conda activate unsup_amr
+conda env create -f eval_env.yml
 ```
 
-## Training
-
-Pytorch Lightning has many optional CLI params:
+Evaluate a model with random weights on AMR 3.0 data:
 ```bash
-python -m unsupamr.fit --help
+./random_experiment.sh
 ```
 
-At least right now we've managed to make our training CLI arguments all optional.
-`--data.batch_size` and `--data.debug_subset` are handy though for light testing:
-Here's a sample run:
+Training a model on English samples from EuroParl, and then evaluate on AMR 3.0 data:
 ```bash
-python -m unsupamr.fit \
-    --trainer.logger.version ethans_run_mar16 \
-    --data.batch_size 4 \
-    --data.debug_subset true 
-```
-
-## Prediction
-Required arguments to run the prediction module,
-- `--output_path any/output/result/path`
-- `--model.version <version>` where `<version>` is basename of the experiment dir `./lightning_logs/<version>` created by `unsupamr.fit`
-
-Example:
-```bash
-python -m unsupamr.predict --model.version ethans_run_mar16 --output_path prediction_output.txt
-```
-
-## Putting it All Together
-
-Here's a simple way to run both in succession:
-```bash
-RUN_NAME=ethans_run_mar16 
-
-python -m unsupamr.fit \
-    --trainer.logger.version $RUN_NAME \
-python -m unsupamr.predict \
-    --model.version $RUN_NAME \
-    --output_path output.txt
+./experiment.sh
 ```

@@ -26,9 +26,7 @@ VERSION=version_$TIMESTAMP
 module load conda
 conda activate unsup_amr
 
-python -m unsupamr.fit \
-    --trainer.logger.version $VERSION \
-    --data.debug_subset true
+python -m unsupamr.fit --trainer.logger.version $VERSION 
 
 python -m unsupamr.predict --model.version $VERSION --output_path $PREDS_OUTPUT | tee $LOGGED_OUTPUT
 
