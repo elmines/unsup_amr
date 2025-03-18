@@ -1,6 +1,8 @@
 # STL
 import os
 import glob
+from itertools import starmap
+from typing import List
 # 3rd Party
 import torch
 import lightning as L
@@ -10,6 +12,7 @@ from .t2a import T2A
 from .embeddings import expand_embedding, expand_lm_head
 from .utils import VocabExt
 from .constants import DEFAULT_SEQ_MODEL, DEFAULT_MAX_GRAPH_SIZE
+from .postprocess import triple_decode, probs_to_ids
 
 class PredictMod(L.LightningModule):
     def __init__(self, 
@@ -21,11 +24,11 @@ class PredictMod(L.LightningModule):
         self.save_hyperparameters()
 
         pretrained_a = T5ForConditionalGeneration.from_pretrained(pretrained_model)
-        vocab_ext = VocabExt(pretrained_a, T5TokenizerFast.from_pretrained(pretrained_model))
-        self.embeddings = expand_embedding(pretrained_a.get_input_embeddings(), vocab_ext)
+        self.vocab_ext = VocabExt(pretrained_a, T5TokenizerFast.from_pretrained(pretrained_model))
+        self.embeddings = expand_embedding(pretrained_a.get_input_embeddings(), self.vocab_ext)
         pretrained_a.set_input_embeddings(self.embeddings)
-        pretrained_a.lm_head = expand_lm_head(pretrained_a.lm_head, vocab_ext)
-        self.t2a = T2A(pretrained_a, vocab_ext, temperature=temperature, max_iterations = max_graph_size)
+        pretrained_a.lm_head = expand_lm_head(pretrained_a.lm_head, self.vocab_ext)
+        self.t2a = T2A(pretrained_a, self.vocab_ext, temperature=temperature, max_iterations = max_graph_size)
         self.embeddings.eval()
         self.t2a.eval()
 
@@ -44,29 +47,21 @@ class PredictMod(L.LightningModule):
             raise ValueError(f"Checkpoint missing weights {missing_keys}")
         self.load_state_dict(matching_state_dict)
 
-    def predict_step(self, batch, batch_idx):
-        
-        prob_history, pred_attention_mask = self.t2a(
-            input_ids = batch['input_ids'],
-            attention_mask = batch['attention_mask']
+    def predict_step(self, batch, batch_idx) -> List[str]:
+        prob_history, _ = self.t2a(
+            input_ids=batch['input_ids'],
+            attention_mask=batch['attention_mask']
         )
+        prediction_batch = probs_to_ids(prob_history)
+        text_ids = map(lambda t: t.tolist(), batch['input_ids'])
+        triples = starmap(lambda i, p: triple_decode(i, p, self.vocab_ext), zip(text_ids, prediction_batch))
+        penman_preds = []
+        for (raw_text, dfs_text, penman_text) in triples:
+            print()
+            print(f"Input : {raw_text}")
+            print(f"DFS   : {dfs_text}")
+            print(f"Penman: ")
+            print(f"{penman_text}")
 
-        pred_token_ids = prob_history.argmax(dim=-1)
-        
-
-        # predictions = []
-
-        # for tokens in pred_token_ids:
-        #     prediction = [self.vocab_ext.decode([token.item()]) for token in tokens]
-        #     predictions.append(prediction)
-
-        predictions = [[token.item() for token in tokens] for tokens in pred_token_ids]
-
-        # predictions = pred_token_ids.tolist()
-
-
-        return predictions  # List[List[int]]
-
-
-
-        #return in format -> List[List[int]]
+            penman_preds.append(penman_text)
+        return penman_preds
