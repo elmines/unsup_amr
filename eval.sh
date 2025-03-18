@@ -1,16 +1,28 @@
 #!/bin/bash
-#SBATCH --time=1:00:00 --output=eval.out --error=eval.err
-#SBATCH --mem=5GB
-#SBATCH -c 5
 
-AMR_TEST_DIR=amr_data/amr_annotation_3.0/data/amrs/split/test
-if [ ! -e $AMR_TEST_DIR ]
+PRED_FILE=$1
+
+if [ -z $PRED_FILE ]
 then
-    echo "Error: $AMR_TEST_DIR does not exist"
+    echo "Usage: $0 amr_predictions.txt"
     exit 1
 fi
 
-PRED_FILE="gold_standard/concat_pred.txt"
+if [ ! -f $PRED_FILE ]
+then
+    echo "Error: Predictions file '$PRED_FILE' does not exist"
+    exit 1
+fi
+
+AMR_TEST_DIR=amr_data/amr_annotation_3.0/data/amrs/split/test
+if [ ! -d $AMR_TEST_DIR ]
+then
+    echo "Error: '$AMR_TEST_DIR' does not exist"
+    exit 1
+fi
+
+module load conda
+conda activate unsup_amr_eval
 
 # Get SLURM_TMPDIR, or else TMPDIR, or else local directory
 SCRIPT_TMPDIR=${SLURM_TMPDIR:-${TMPDIR:-.}}
@@ -19,7 +31,6 @@ echo "Using $SCRIPT_TMPDIR" to write temporary files
 GOLD_FILE="$SCRIPT_TMPDIR/!concat_gold.txt"
 cat $(ls -d $AMR_TEST_DIR/* | sort) > $GOLD_FILE
 echo "Wrote concatenated AMR 3.0 data to $GOLD_FILE..."
-# exit 0
 
 # Ensure both files exist
 if [ ! -f "$GOLD_FILE" ]; then
