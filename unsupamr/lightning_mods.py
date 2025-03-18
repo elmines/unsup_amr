@@ -1,5 +1,6 @@
 # STL
 from typing import List
+from itertools import starmap
 # 3rd Party
 import lightning as L
 from transformers import T5ForConditionalGeneration, T5TokenizerFast
@@ -9,7 +10,7 @@ from .t2a import T2A
 from .constants import DEFAULT_SEQ_MODEL, DEFAULT_MAX_GRAPH_SIZE, STOPPING_METRIC
 from .embeddings import expand_embedding, expand_lm_head, mult_embedding_lookup
 from .utils import VocabExt
-from .postprocess import probs_to_ids, bfs_to_penman
+from .postprocess import probs_to_ids, triple_decode
 
 
 class TrainingMod(L.LightningModule):
@@ -72,24 +73,9 @@ class TrainingMod(L.LightningModule):
             attention_mask=batch['attention_mask']
         )
         prediction_batch = probs_to_ids(prob_history)
-
-        tokenizer = self.vocab_ext.tokenizer
-
-        def trim_padding(seq: List[int]):
-            while seq and seq[-1] == self.vocab_ext.pad_id:
-                seq.pop()
-            return seq
-
-
-        for (text_ids, prediction_sample) in zip(batch['input_ids'], prediction_batch):
-            raw_text = tokenizer.decode(text_ids, skip_special_tokens=True)
-
-            prediction_sample = trim_padding(prediction_sample)
-            dfs_tokens = self.vocab_ext.ids_to_str(prediction_sample)
-
-            penman_text = bfs_to_penman(dfs_tokens)
-            dfs_text = " ".join(dfs_tokens)
-
+        text_ids = map(lambda t: t.tolist(), batch['input_ids'])
+        triples = starmap(lambda i, p: triple_decode(i, p, self.vocab_ext), zip(text_ids, prediction_batch))
+        for (raw_text, dfs_text, penman_text) in triples:
             print()
             print(f"Input : {raw_text}")
             print(f"DFS   : {dfs_text}")

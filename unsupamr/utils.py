@@ -37,8 +37,21 @@ class VocabExt:
     pruned_english: List[int]
     amr_symbols: List[AMRSymbol]
 
+    @staticmethod
+    def __postprocess_token(tok: str):
+        # If our model predicts AMR-syntax symbols, that could break the penman format 
+        if tok == ':':
+            return 'COLON'
+        if tok == '/':
+            return 'SLASH'
+        if tok == '(' or tok == ')':
+            return 'PAREN'
+        if tok == '-':
+            return 'HYPEN'
+        return tok
+
     def ids_to_str(self, ids: List[int]) -> List[str]:
-        return [self.__id_to_token[id] for id in ids]
+        return [VocabExt.__postprocess_token(self.__id_to_token[id]) for id in ids]
 
     def __init__(self,
                  model: T5ForConditionalGeneration,

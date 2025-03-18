@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 import re, json, glob
 from collections import defaultdict
 # 3rd Party
@@ -8,6 +8,11 @@ from transformers import T5ForConditionalGeneration, T5TokenizerFast
 from .constants import DEFAULT_SEQ_MODEL
 from .utils import VocabExt
 
+def trim_padding(seq: List[int], pad_id):
+    seq_end = len(seq)
+    while seq_end > 0 and seq[seq_end - 1] == pad_id:
+        seq_end -= 1
+    return seq[:seq_end]
 
 def probs_to_ids(probs: torch.Tensor) -> List[List[int]]:
     return [[token.item() for token in tokens] for tokens in probs.argmax(dim=-1)]
@@ -16,6 +21,22 @@ def probs_to_ids(probs: torch.Tensor) -> List[List[int]]:
 def is_label(j, tokens):
     #here j is actually i+1
     return (not tokens[j].startswith('<') and not tokens[j].startswith(':'))
+
+def triple_decode(input_ids: List[int], pred_ids: List[int], vocab_ext: VocabExt) \
+    -> Tuple[str, str, str]:
+
+    tokenizer = vocab_ext.tokenizer
+    pad_id = vocab_ext.pad_id
+
+    raw_text = tokenizer.decode(input_ids, skip_special_tokens=True)
+
+    pred_ids = trim_padding(pred_ids, pad_id)
+    bfs_tokens = vocab_ext.ids_to_str(pred_ids)
+    bfs_text = " ".join(bfs_tokens)
+
+    penman_text = bfs_to_penman(bfs_tokens)
+
+    return raw_text, bfs_text, penman_text
 
 # def bfs_to_penman(vocab_ids, vocab_exts):
 def bfs_to_penman(tokens):

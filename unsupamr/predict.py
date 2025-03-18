@@ -26,11 +26,11 @@ if __name__ == "__main__":
         run = False,   
         )
 
-    predictions = cli.trainer.predict(model=cli.model, datamodule=cli.datamodule)
+    prediction_batches = cli.trainer.predict(model=cli.model, datamodule=cli.datamodule)
 
     with open(cli.output_path, "w") as f:
-        for prediction in predictions:
-            for pred in prediction:
-                f.write(str(pred) + "\n")
+        for prediction_batch in prediction_batches:
+            for pred in prediction_batch:
+                f.write(str(pred) + "\n\n")
     
     print(f"Predictions saved to {cli.output_path}")
