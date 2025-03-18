@@ -37,21 +37,29 @@ class VocabExt:
     pruned_english: List[int]
     amr_symbols: List[AMRSymbol]
 
-    @staticmethod
-    def __postprocess_token(tok: str):
+    __AMR_SYN_PATTERN = re.compile(r'[:()/]')
+    """
+    Character class matching characters that would break AMR.
+    Includes:
+    - colons
+    - parentheses
+    - forward slash
+    """
+
+    def __postprocess_token(self, tok: str):
         # If our model predicts AMR-syntax symbols, that could break the penman format 
-        if tok == ':':
-            return 'COLON'
-        if tok == '/':
-            return 'SLASH'
-        if tok == '(' or tok == ')':
-            return 'PAREN'
+        if tok in self.__known_valid:
+            # This list overrides our regex
+            return tok
+        match_obj = self.__AMR_SYN_PATTERN.search(tok)
+        if match_obj:
+            return 'PUNCTUATION'
         if tok == '-':
             return 'HYPEN'
         return tok
 
     def ids_to_str(self, ids: List[int]) -> List[str]:
-        return [VocabExt.__postprocess_token(self.__id_to_token[id]) for id in ids]
+        return [self.__postprocess_token(self.__id_to_token[id]) for id in ids]
 
     def __init__(self,
                  model: T5ForConditionalGeneration,
@@ -120,10 +128,11 @@ class VocabExt:
 
         self.eos_id        : int             = get_special_token("eos_token", tokenizer)
         self.pad_id        : int             = get_special_token("pad_token", tokenizer)
+        self.unk_id        : int             = get_special_token("unk_token", tokenizer)
         self.amr_symbols   : List[AMRSymbol] = amr_entries
         self.stop_token_idx: int             = next(ent for ent in self.amr_symbols if ent.category == AmrCategory.STOP).id
         self.new_vocab_size: int             = lm_head_size + len(amr_entries)
-        self.concept_idxs: Set[int]        = set(range(len(tokenizer.get_vocab()))) - {self.eos_id, self.pad_id}
+        self.concept_idxs: Set[int]        = set(range(len(tokenizer.get_vocab()))) - {self.eos_id, self.pad_id, self.unk_id}
 
         # TODO: Get rid of redundant fields. Doing this right now for compatibility with nextTokens
         self.vf = {ent.id:ent.args for ent in self.amr_symbols if ent.category == AmrCategory.FRAME}
@@ -139,3 +148,4 @@ class VocabExt:
         # Extend with AMR symbols
         for amr_symbol in self.amr_symbols:
             self.__id_to_token[amr_symbol.id] = amr_symbol.token
+        self.__known_valid = {tokenizer.eos_token, tokenizer.pad_token} | {ent.token for ent in self.amr_symbols}
