@@ -98,7 +98,7 @@ def bfs_to_penman(tokens):
                     edge_label = tokens[i-1]
                     edges[active_node].append((node_id, edge_label))
                 else:
-                    print("Active Node not Found", file=sys.stderr)
+                    raise ValueError("Active Node not Found")
 
                 i += 1
             # Skip node definition (already handled in first pass)

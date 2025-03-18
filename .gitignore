@@ -15,3 +15,6 @@ scrap*
 lightning_logs/
 
 amr_data/
+
+*.txt
+!propbank-amr-frame-arg-descr.txt

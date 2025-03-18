@@ -1,0 +1,8 @@
+name: unsup_amr_eval
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10 # Specify the Python version for SemBLEU compatibility
+  - pip
+  - pip:
+    - smatch
