@@ -3,10 +3,6 @@
 #SBATCH --mem=5GB
 #SBATCH -c 5
 
-# Hardcoded input files
-GOLD_FILE="gold_standard/!concat_gold.txt"
-PRED_FILE="gold_standard/concat_pred.txt"
-
 AMR_TEST_DIR=amr_data/amr_annotation_3.0/data/amrs/split/test
 if [ ! -e $AMR_TEST_DIR ]
 then
@@ -14,7 +10,15 @@ then
     exit 1
 fi
 
+PRED_FILE="gold_standard/concat_pred.txt"
+
+# Get SLURM_TMPDIR, or else TMPDIR, or else local directory
+SCRIPT_TMPDIR=${SLURM_TMPDIR:-${TMPDIR:-.}}
+echo "Using $SCRIPT_TMPDIR" to write temporary files
+
+GOLD_FILE="$SCRIPT_TMPDIR/!concat_gold.txt"
 cat $(ls -d $AMR_TEST_DIR/* | sort) > $GOLD_FILE
+echo "Wrote concatenated AMR 3.0 data to $GOLD_FILE..."
 # exit 0
 
 # Ensure both files exist
