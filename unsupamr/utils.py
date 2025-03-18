@@ -37,6 +37,9 @@ class VocabExt:
     pruned_english: List[int]
     amr_symbols: List[AMRSymbol]
 
+    def ids_to_str(self, ids: List[int]) -> List[str]:
+        return [self.__id_to_token[id] for id in ids]
+
     def __init__(self,
                  model: T5ForConditionalGeneration,
                  tokenizer: T5Tokenizer,
@@ -118,3 +121,8 @@ class VocabExt:
 
         assert self.start_label_idx is not None
         assert self.stop_token_idx is not None
+
+        self.__id_to_token = {v: k for k, v in self.tokenizer.get_vocab().items()}
+        # Extend with AMR symbols
+        for amr_symbol in self.amr_symbols:
+            self.__id_to_token[amr_symbol.id] = amr_symbol.token

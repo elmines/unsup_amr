@@ -39,7 +39,8 @@ if __name__ == "__main__":
             "callbacks": [
                 early_stopping_callback,
                 best_checkpoint_callback
-            ]
+            ],
+            "val_check_interval": 5
         },
         run=False
     )

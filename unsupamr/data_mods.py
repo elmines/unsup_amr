@@ -1,6 +1,6 @@
 # 3rd Party
 import lightning as L
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 # Local
 from .preprocess import EuroparlPreprocessor, EuroparlTranslationDataset, collate_fn
 from .constants import DEFAULT_SEQ_MODEL, AMR_DATA_DIR, DEFAULT_BATCH_SIZE
@@ -36,8 +36,17 @@ class EuroParlDataModule(L.LightningDataModule):
         self.train_loader = DataLoader(train_dataset, batch_size=self.hparams.batch_size, shuffle=True, num_workers=1, 
                                   collate_fn=lambda batch: collate_fn(preprocessor.tokenizer, batch))
 
+        # Tiny test batch (not even shuffled) just to see how the model is doing
+        # val_dataset = train_dataset[:self.hparams.batch_size]
+        val_dataset = Subset(train_dataset, list(range(self.hparams.batch_size)) )
+        self.val_loader = DataLoader(val_dataset, batch_size=self.hparams.batch_size, shuffle=False, num_workers=1, 
+                                  collate_fn=lambda batch: collate_fn(preprocessor.tokenizer, batch))
+
     def train_dataloader(self):
         return self.train_loader
+
+    def val_dataloader(self):
+        return self.val_loader
 
 
 class AMRDataModule(L.LightningDataModule):

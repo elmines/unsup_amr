@@ -1,18 +1,24 @@
+from typing import List
 import re, json, glob
 from collections import defaultdict
+# 3rd Party
+import torch
+from transformers import T5ForConditionalGeneration, T5TokenizerFast
+# Local
 from .constants import DEFAULT_SEQ_MODEL
 from .utils import VocabExt
-from transformers import T5ForConditionalGeneration, T5TokenizerFast
 
 
-    
+def probs_to_ids(probs: torch.Tensor) -> List[List[int]]:
+    return [[token.item() for token in tokens] for tokens in probs.argmax(dim=-1)]
 
 
 def is_label(j, tokens):
     #here j is actually i+1
     return (not tokens[j].startswith('<') and not tokens[j].startswith(':'))
 
-def bfs_to_penman(vocab_ids, vocab_exts):
+# def bfs_to_penman(vocab_ids, vocab_exts):
+def bfs_to_penman(tokens):
     """
     Convert BFS token sequence to Penman notation, handling truncated sequences.
     
@@ -22,16 +28,6 @@ def bfs_to_penman(vocab_ids, vocab_exts):
     Returns:
         String in Penman notation
     """
-
-    # Get original vocabulary mapping
-    id_to_token = {v: k for k, v in vocab_ext.tokenizer.get_vocab().items()}
-
-    # Extend with AMR symbols
-    for amr_symbol in vocab_ext.amr_symbols:
-        id_to_token[amr_symbol.id] = amr_symbol.token
-
-    #getting the token list from vocab ids using the vocab_ext
-    tokens = [id_to_token.get(i, "<UNK>") for i in vocab_ids]
 
     # Check if sequence appears to be truncated (no <stop> at the end)
     truncated = '<eos>' not in tokens and '</s>' not in tokens and not tokens[-1] == '<stop>'
