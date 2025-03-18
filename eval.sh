@@ -7,6 +7,16 @@
 GOLD_FILE="gold_standard/!concat_gold.txt"
 PRED_FILE="gold_standard/concat_pred.txt"
 
+AMR_TEST_DIR=amr_data/amr_annotation_3.0/data/amrs/split/test
+if [ ! -e $AMR_TEST_DIR ]
+then
+    echo "Error: $AMR_TEST_DIR does not exist"
+    exit 1
+fi
+
+cat $(ls -d $AMR_TEST_DIR/* | sort) > $GOLD_FILE
+# exit 0
+
 # Ensure both files exist
 if [ ! -f "$GOLD_FILE" ]; then
     echo "Error: Gold standard file '$GOLD_FILE' not found!"
