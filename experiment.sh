@@ -1,0 +1,26 @@
+#!/bin/bash
+
+TIMESTAMP=$(date +%s)
+
+prefix=`pwd`/outputs/trained_$TIMESTAMP
+PREDS_OUTPUT=${prefix}_predictions.txt
+LOGGED_OUTPUT=${prefix}_output.txt
+METRICS_OUTPUT=${prefix}_metrics.txt
+
+VERSION=version_$TIMESTAMP
+
+module load conda
+conda activate unsup_amr
+
+python -m unsupamr.fit \
+    --trainer.logger.version $VERSION \
+    --data.debug_subset true
+
+python -m unsupamr.predict --model.version $VERSION --output_path $PREDS_OUTPUT | tee $LOGGED_OUTPUT
+
+conda activate unsup_amr_eval
+./eval.sh $PREDS_OUTPUT | tee $METRICS_OUTPUT
+
+echo Predictions available at $PREDS_OUTPUT
+echo "Full prediction output (DFS and Penman) available at $LOGGED_OUTPUT"
+echo Metrics available at $METRICS_OUTPUT
