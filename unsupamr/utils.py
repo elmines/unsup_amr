@@ -37,11 +37,29 @@ class VocabExt:
     pruned_english: List[int]
     amr_symbols: List[AMRSymbol]
 
+    @staticmethod
+    def __postprocess_token(tok: str):
+        # If our model predicts AMR-syntax symbols, that could break the penman format 
+        if tok == ':':
+            return 'COLON'
+        if tok == '/':
+            return 'SLASH'
+        if tok == '(' or tok == ')':
+            return 'PAREN'
+        if tok == '-':
+            return 'HYPEN'
+        return tok
+
+    def ids_to_str(self, ids: List[int]) -> List[str]:
+        return [VocabExt.__postprocess_token(self.__id_to_token[id]) for id in ids]
+
     def __init__(self,
                  model: T5ForConditionalGeneration,
                  tokenizer: T5Tokenizer,
                  propbank_path: os.PathLike = DEFAULT_PROPBANK,
                  max_nodes: int = 25):
+        self.tokenizer = tokenizer
+
         lm_head_size = model.lm_head.weight.shape[0]
 
         # Tuples of (symbol, embedding_id, type_name, args)
@@ -116,3 +134,8 @@ class VocabExt:
 
         assert self.start_label_idx is not None
         assert self.stop_token_idx is not None
+
+        self.__id_to_token = {v: k for k, v in self.tokenizer.get_vocab().items()}
+        # Extend with AMR symbols
+        for amr_symbol in self.amr_symbols:
+            self.__id_to_token[amr_symbol.id] = amr_symbol.token
