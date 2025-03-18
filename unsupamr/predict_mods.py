@@ -1,4 +1,8 @@
+# STL
+import os
+import glob
 # 3rd Party
+import torch
 import lightning as L
 from transformers import T5ForConditionalGeneration, T5TokenizerFast
 # Local
@@ -9,6 +13,7 @@ from .constants import DEFAULT_SEQ_MODEL, DEFAULT_MAX_GRAPH_SIZE
 
 class PredictMod(L.LightningModule):
     def __init__(self, 
+               version: str,
                pretrained_model: str = DEFAULT_SEQ_MODEL,
                temperature: float = 1.,
                max_graph_size: int = DEFAULT_MAX_GRAPH_SIZE):
@@ -24,6 +29,20 @@ class PredictMod(L.LightningModule):
         self.embeddings.eval()
         self.t2a.eval()
 
+        ckpt_pattern = os.path.join(os.path.dirname(__file__), "..", "lightning_logs", version, "checkpoints", "best-*.ckpt")
+        ckpt_paths = glob.glob(ckpt_pattern)
+        if not ckpt_paths:
+            raise ValueError(f"No checkpoint path matching {ckpt_pattern}")
+        elif len(ckpt_paths) > 1:
+            raise ValueError(f"Found multiple candidate checkpoint paths: {ckpt_paths}")
+
+        best_checkpoint = torch.load(ckpt_paths[0])
+        old_state = self.state_dict()
+        matching_state_dict = {k: v for k, v in best_checkpoint['state_dict'].items() if k in old_state}
+        missing_keys = set(old_state) - set(matching_state_dict)
+        if missing_keys:
+            raise ValueError(f"Checkpoint missing weights {missing_keys}")
+        self.load_state_dict(matching_state_dict)
 
     def predict_step(self, batch, batch_idx):
         
@@ -35,7 +54,7 @@ class PredictMod(L.LightningModule):
         pred_token_ids = prob_history.argmax(dim=-1)
         
 
-        predictions = []
+        # predictions = []
 
         # for tokens in pred_token_ids:
         #     prediction = [self.vocab_ext.decode([token.item()]) for token in tokens]

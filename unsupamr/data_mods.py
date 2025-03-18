@@ -42,7 +42,7 @@ class EuroParlDataModule(L.LightningDataModule):
 
 class AMRDataModule(L.LightningDataModule):
     def __init__(self,
-                 amr_version: str,
+                 amr_version: str = "3.0",
                  pretrained_model: str = DEFAULT_SEQ_MODEL,
                  data_dir: str = AMR_DATA_DIR,
                  batch_size: int = DEFAULT_BATCH_SIZE):

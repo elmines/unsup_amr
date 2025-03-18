@@ -1,7 +1,6 @@
 from .cli import CustomCLI
 from. predict_mods import PredictMod
-from .data_mods import EuroParlDataModule, AMRDataModule
-
+from .data_mods import AMRDataModule
 
 class PredictCLI(CustomCLI):
 
@@ -26,7 +25,7 @@ if __name__ == "__main__":
             },
         run = False,   
         )
-    
+
     predictions = cli.trainer.predict(model=cli.model, datamodule=cli.datamodule)
 
     with open(cli.output_path, "w") as f:

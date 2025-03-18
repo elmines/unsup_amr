@@ -9,3 +9,4 @@ class CustomCLI(LightningCLI):
         parser.link_arguments("pretrained_model", "model.pretrained_model")
         parser.link_arguments("pretrained_model", "data.pretrained_model")
 
+
