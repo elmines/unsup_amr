@@ -37,7 +37,7 @@ class VocabExt:
     pruned_english: List[int]
     amr_symbols: List[AMRSymbol]
 
-    __AMR_SYN_PATTERN = re.compile(r'[:()/]')
+    __AMR_SYN_PATTERN = re.compile(r'[:()/"]')
     """
     Character class matching characters that would break AMR.
     Includes:
