@@ -11,14 +11,15 @@ from transformers import T5ForConditionalGeneration, T5TokenizerFast
 from .t2a import T2A
 from .embeddings import expand_embedding, expand_lm_head
 from .utils import VocabExt
-from .constants import DEFAULT_SEQ_MODEL, DEFAULT_MAX_GRAPH_SIZE
+from .constants import DEFAULT_SEQ_MODEL, DEFAULT_MAX_GRAPH_SIZE, DEFAULT_SMOOTHING, DEFAULT_TEMP
 from .postprocess import triple_decode, probs_to_ids
 
 class PredictMod(L.LightningModule):
     def __init__(self, 
                version: Optional[str] = None,
                pretrained_model: str = DEFAULT_SEQ_MODEL,
-               temperature: float = 1.,
+               temperature: float = DEFAULT_TEMP,
+               smoothing: float = DEFAULT_SMOOTHING,
                max_graph_size: int = DEFAULT_MAX_GRAPH_SIZE):
         super().__init__()
         self.save_hyperparameters()
@@ -28,7 +29,7 @@ class PredictMod(L.LightningModule):
         self.embeddings = expand_embedding(pretrained_a.get_input_embeddings(), self.vocab_ext)
         pretrained_a.set_input_embeddings(self.embeddings)
         pretrained_a.lm_head = expand_lm_head(pretrained_a.lm_head, self.vocab_ext)
-        self.t2a = T2A(pretrained_a, self.vocab_ext, temperature=temperature, max_iterations = max_graph_size)
+        self.t2a = T2A(pretrained_a, self.vocab_ext, temperature=temperature, smoothing=smoothing, max_iterations = max_graph_size)
         self.embeddings.eval()
         self.t2a.eval()
 
@@ -54,7 +55,7 @@ class PredictMod(L.LightningModule):
         self.load_state_dict(matching_state_dict)
 
     def predict_step(self, batch, batch_idx) -> List[str]:
-        prob_history, _ = self.t2a(
+        prob_history, _, _ = self.t2a(
             input_ids=batch['input_ids'],
             attention_mask=batch['attention_mask']
         )

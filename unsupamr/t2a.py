@@ -5,7 +5,7 @@ import torch
 from transformers import T5ForConditionalGeneration
 from transformers.cache_utils import DynamicCache, EncoderDecoderCache
 # Local
-from .constants import DEFAULT_MAX_GRAPH_SIZE
+from .constants import DEFAULT_MAX_GRAPH_SIZE, DEFAULT_TEMP, DEFAULT_SMOOTHING
 from .embeddings import mult_embedding_lookup
 from .next_token import NextTokens
 from .utils import VocabExt
@@ -18,7 +18,8 @@ class T2A(torch.nn.Module):
     def __init__(self,
                  pretrained: T5ForConditionalGeneration,
                  vocab_ext: VocabExt,
-                 temperature: float = 1.,
+                 temperature: float = DEFAULT_TEMP,
+                 smoothing: float = DEFAULT_SMOOTHING,
                  max_iterations: int = DEFAULT_MAX_GRAPH_SIZE):
         super().__init__()
         self.config = pretrained.config
@@ -31,6 +32,7 @@ class T2A(torch.nn.Module):
         self.vocab_ext = vocab_ext
         self.temperature = temperature
         self.max_iterations = max_iterations
+        self.smoothing = smoothing
 
         assert self.encoder.get_input_embeddings() is self.decoder.get_input_embeddings()
 
@@ -51,6 +53,7 @@ class T2A(torch.nn.Module):
 
         prob_history = []
         pred_history = []
+        embed_history = []
 
         past_key_values = EncoderDecoderCache(DynamicCache(), DynamicCache())
 
@@ -82,7 +85,8 @@ class T2A(torch.nn.Module):
                 for (pred, tracker) in zip(preds, trackers):
                     tracker.nextTokens(int(pred))
                 is_finished = torch.all(torch.logical_or(preds == self.eos_token_id, preds == self.pad_token_id))
-            new_embeddings = mult_embedding_lookup(probs, self.embeddings)
+            new_embeddings = mult_embedding_lookup(probs, self.embeddings, smoothing=self.smoothing)
+            embed_history.append(new_embeddings)
             embeddings = torch.unsqueeze(new_embeddings, dim=-2)
 
             if is_finished:
@@ -91,8 +95,9 @@ class T2A(torch.nn.Module):
             print("Warning: hit maximum sequence length")
 
         prob_history = torch.stack(prob_history, dim=1)
+        embed_history = torch.stack(embed_history, dim=1)
         with torch.no_grad():
             pred_history = torch.stack(pred_history, dim=1)
             pred_attention_mask = pred_history == self.pad_token_id
-        return prob_history, pred_attention_mask
+        return prob_history, embed_history, pred_attention_mask
 

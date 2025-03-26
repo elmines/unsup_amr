@@ -39,5 +39,8 @@ def expand_embedding(embedding: torch.nn.Embedding, vocab: VocabExt) -> torch.nn
                 new_embedding.weight[entry.id] = old_weight_mat[entry.embed_id]    
     return new_embedding
 
-def mult_embedding_lookup(prob_dists: torch.Tensor, embedding: torch.nn.Embedding):
+def mult_embedding_lookup(prob_dists: torch.Tensor, embedding: torch.nn.Embedding, smoothing=0):
+    if smoothing > 0:
+        smoothed_dists = (1 - smoothing) * prob_dists + smoothing * (1 / prob_dists.shape[-1])
+        return smoothed_dists @ embedding.weight
     return prob_dists @ embedding.weight
