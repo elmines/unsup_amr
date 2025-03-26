@@ -6,14 +6,15 @@ import torch
 from .utils import VocabExt
 
 
-def expand_lm_head(head: torch.nn.Linear, vocab: VocabExt) -> torch.nn.Linear:
+def expand_lm_head(head: torch.nn.Linear, vocab: VocabExt, load_old_head_weights: bool = True) -> torch.nn.Linear:
     
     old_num_tokens, hidden_dim = head.weight.shape
     
     new_head = torch.nn.Linear(hidden_dim, vocab.new_vocab_size, bias=False)
     
-    with torch.no_grad():
-        new_head.weight[:old_num_tokens] = head.weight  # Copy old weightss
+    if load_old_head_weights:
+        with torch.no_grad():
+            new_head.weight[:old_num_tokens] = head.weight  # Copy old weightss
     
     return new_head
 

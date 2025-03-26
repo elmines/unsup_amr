@@ -18,7 +18,8 @@ class TrainingMod(L.LightningModule):
                  pretrained_model: str = DEFAULT_SEQ_MODEL,
                  temperature: float = DEFAULT_TEMP,
                  smoothing: float = DEFAULT_SMOOTHING,
-                 max_graph_size: int = DEFAULT_MAX_GRAPH_SIZE):
+                 max_graph_size: int = DEFAULT_MAX_GRAPH_SIZE,
+                 load_old_head_weights: bool = True):
         super().__init__()
         self.save_hyperparameters()
 
@@ -28,7 +29,7 @@ class TrainingMod(L.LightningModule):
 
         self.embeddings = expand_embedding(pretrained_a.get_input_embeddings(), self.vocab_ext)
         pretrained_a.set_input_embeddings(self.embeddings)
-        pretrained_a.lm_head = expand_lm_head(pretrained_a.lm_head, self.vocab_ext)
+        pretrained_a.lm_head = expand_lm_head(pretrained_a.lm_head, self.vocab_ext, load_old_head_weights=load_old_head_weights)
         self.t2a = T2A(pretrained_a, self.vocab_ext, temperature=temperature, smoothing=smoothing, max_iterations=max_graph_size)
 
         self.a2t = T5ForConditionalGeneration.from_pretrained(pretrained_model)
