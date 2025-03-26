@@ -29,6 +29,10 @@ DEFAULT_BATCH_SIZE = 4
 
 DEFAULT_MAX_GRAPH_SIZE = 64
 
+DEFAULT_TEMP = 1.
+
+DEFAULT_SMOOTHING = 0.
+
 EUROPARL_URI = "Helsinki-NLP/europarl"
 
 T5_SEP = (b'\xe2\x96\x81').decode()
