@@ -8,7 +8,7 @@ import torch
 # Local
 from .t2a import T2A
 from .constants import DEFAULT_SEQ_MODEL, DEFAULT_MAX_GRAPH_SIZE, STOPPING_METRIC, DEFAULT_SMOOTHING, DEFAULT_TEMP
-from .embeddings import expand_embedding, expand_lm_head
+from .embeddings import expand_embedding, expand_lm_head, mask_lm_head
 from .utils import VocabExt
 from .postprocess import probs_to_ids, triple_decode
 
@@ -21,7 +21,8 @@ class TrainingMod(L.LightningModule):
                  max_graph_size: int = DEFAULT_MAX_GRAPH_SIZE,
                  load_old_head_weights: bool = True,
                  log_gradients: bool = False,
-                 log_concept_rates: bool = False):
+                 log_concept_rates: bool = False,
+                 mask_a2t_head: bool = False):
         super().__init__()
         self.save_hyperparameters()
 
@@ -37,7 +38,11 @@ class TrainingMod(L.LightningModule):
 
         self.a2t = T5ForConditionalGeneration.from_pretrained(pretrained_model)
         self.a2t.set_input_embeddings(self.embeddings)
-        self.a2t.lm_head = expand_lm_head(self.a2t.lm_head, self.vocab_ext)
+
+        if mask_a2t_head:
+            self.a2t.lm_head = mask_lm_head(self.a2t.lm_head, self.vocab_ext)
+        else:
+            self.a2t.lm_head = expand_lm_head(self.a2t.lm_head, self.vocab_ext)
 
         self.total_sets = 0
         self.total_params = 0

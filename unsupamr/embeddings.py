@@ -5,6 +5,14 @@ import torch
 # Local
 from .utils import VocabExt
 
+def mask_lm_head(head: torch.nn.Linear, vocab: VocabExt) -> torch.nn.Linear:
+    old_num_tokens, hidden_dim = head.weight.shape
+    new_head = torch.nn.Linear(hidden_dim, vocab.new_vocab_size, bias=False)
+    with torch.no_grad():
+        weight_mat = new_head.weight
+        weight_mat[:old_num_tokens] = head.weight
+        weight_mat[old_num_tokens:] = 0.
+    return new_head
 
 def expand_lm_head(head: torch.nn.Linear, vocab: VocabExt, load_old_head_weights: bool = True) -> torch.nn.Linear:
     
