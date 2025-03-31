@@ -8,7 +8,7 @@ import torch
 # Local
 from .t2a import T2A
 from .constants import DEFAULT_SEQ_MODEL, DEFAULT_MAX_GRAPH_SIZE, STOPPING_METRIC, DEFAULT_SMOOTHING, DEFAULT_TEMP
-from .embeddings import expand_embedding, expand_lm_head, mask_lm_head
+from .embeddings import expand_embedding, expand_lm_head
 from .utils import VocabExt
 from .postprocess import probs_to_ids, triple_decode
 
@@ -19,10 +19,9 @@ class TrainingMod(L.LightningModule):
                  temperature: float = DEFAULT_TEMP,
                  smoothing: float = DEFAULT_SMOOTHING,
                  max_graph_size: int = DEFAULT_MAX_GRAPH_SIZE,
-                 load_old_head_weights: bool = True,
+                 new_lm_head_scheme: bool = False,
                  log_gradients: bool = False,
-                 log_concept_rates: bool = False,
-                 mask_a2t_head: bool = False):
+                 log_concept_rates: bool = False):
         super().__init__()
         self.save_hyperparameters()
 
@@ -32,18 +31,19 @@ class TrainingMod(L.LightningModule):
 
         self.embeddings = expand_embedding(pretrained_a.get_input_embeddings(), self.vocab_ext)
         pretrained_a.set_input_embeddings(self.embeddings)
-        pretrained_a.lm_head = expand_lm_head(pretrained_a.lm_head, self.vocab_ext, load_old_head_weights=load_old_head_weights)
+        pretrained_a.lm_head = expand_lm_head(pretrained_a.lm_head, self.vocab_ext, load_old_head_weights=not new_lm_head_scheme)
         self.t2a = T2A(pretrained_a, self.vocab_ext, temperature=temperature, smoothing=smoothing, max_iterations=max_graph_size,
                        logger=self.log if log_concept_rates else None)
 
         self.a2t = T5ForConditionalGeneration.from_pretrained(pretrained_model)
         self.a2t.set_input_embeddings(self.embeddings)
 
-        if mask_a2t_head:
-            self.a2t.lm_head = mask_lm_head(self.a2t.lm_head, self.vocab_ext)
-        else:
-            self.a2t.lm_head = expand_lm_head(self.a2t.lm_head, self.vocab_ext)
+        self.a2t.lm_head = expand_lm_head(self.a2t.lm_head, self.vocab_ext)
+        if new_lm_head_scheme:
+            with torch.no_grad():
+                self.a2t.lm_head.weight[-len(self.vocab_ext.amr_symbols): ] = 0.
 
+        # Fields to help us with gradient tracking
         self.total_sets = 0
         self.total_params = 0
         with torch.no_grad():
@@ -51,9 +51,6 @@ class TrainingMod(L.LightningModule):
                 if param.requires_grad:
                     self.total_params += int(param.numel())
                     self.total_sets += 1
-        print(self.total_params)
-        print(self.total_sets)
-
         self.large_grad_thresh = 0.1
 
     def on_before_optimizer_step(self, optimizer):
