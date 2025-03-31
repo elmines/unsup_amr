@@ -16,6 +16,8 @@ dependencies:
   - protobuf
   - sentencepiece
 
+  - plotly
+
   # Need this for jupyter notebooks
   - ipykernel
 
