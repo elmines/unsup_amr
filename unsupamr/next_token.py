@@ -105,7 +105,9 @@ class NextTokens:
         self.seq2vocab = {} #Maps seq_idx to vocab_idx
         self.current_verb = None #Current frame (seq_idx)
         self.current_label = None #Current node label (vocab id)
-        self.frames_queue = deque([])
+        self.queue = deque([])
+        self.frames_count = 0
+        self.concepts_count = 0
         self.seq_idx = -1
 
         # predecessors
@@ -167,8 +169,9 @@ class NextTokens:
         self.context.append(token_id)
         
         if token_id == self.stop_token_idx:
-            if len(self.frames_queue) > 0:
-                self.current_verb = self.frames_queue.popleft()
+            if self.frames_count > 0:
+                self.current_verb = self.queue.popleft()
+                self.frames_count -= 1
                 # The label would have immediately preceded the verb
                 self.current_label = self.context[self.current_verb - 1]
                 mask[self.current_label] = 0
@@ -180,11 +183,13 @@ class NextTokens:
             return mask 
 
         if token_id in self.verb_idxs:
-            self.frames_queue.append(self.seq_idx)
+            self.queue.append(self.seq_idx)
+            self.frames_count += 1
             self.args_used[self.seq_idx] = set()
             # Special case--this is our very first verb
-            if self.current_verb is None and len(self.frames_queue) > 0:
-                self.current_verb = self.frames_queue.popleft()
+            if self.current_verb is None and self.frames_count > 0:
+                self.current_verb = self.queue.popleft()
+                self.frames_count -= 1
             else:
                 assert self.context[-3] in self.arg_idxs
                 assert self.context[-2] in self.label_idxs
