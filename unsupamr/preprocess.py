@@ -1,10 +1,15 @@
 from datasets import load_dataset
 from transformers import AutoTokenizer, PreTrainedTokenizerFast
 import torch
+import spacy
 from torch.utils.data import Dataset, DataLoader
 from typing import List, Dict
 # Local
 from .constants import DEFAULT_SEQ_MODEL
+from .utils import remove_suffix
+from collections import defaultdict
+pos_model = spacy.load("en_core_web_sm")
+
 
 class EuroparlPreprocessor:
     """
@@ -13,7 +18,7 @@ class EuroparlPreprocessor:
     - Tokenizes text
     - Applies padding and truncation
     """
-    def __init__(self, model_name=DEFAULT_SEQ_MODEL, source_lang="en", target_lang="en", sample_subset=False):
+    def __init__(self, model_name=DEFAULT_SEQ_MODEL, source_lang="en", target_lang="en", sample_subset=False, vocab_ext=None):
         """
         Initialize with model name and source/target languages.
         Args:
@@ -22,7 +27,6 @@ class EuroparlPreprocessor:
         - target_lang (str): The language of the output sentences (e.g., "es").
         """
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-
         lang_datamap = {
             ("en", "en") : "en-es",
             ("es", "es") : "en-es",
@@ -43,15 +47,34 @@ class EuroparlPreprocessor:
             
         self.source_lang = source_lang
         self.target_lang = target_lang
+        self.verb_frames = defaultdict(list)
+        self.vocab_ext = vocab_ext
+        self.verb_frames = None
+       
+    def load_verb_frames(self): 
+        for amr_symbol in self.vocab_ext["amr_symbols"]:
+            if amr_symbol["category"] == "frame":
+                self.verb_frames[remove_suffix(amr_symbol["token"])].append(amr_symbol["id"])
 
     def preprocess(self, sample: Dict) -> Dict:
         """Tokenizes input and target sentences."""
         input_text = sample["translation"][self.source_lang]  # Source language input
         target_text = sample["translation"][self.target_lang]  # Target language translation
+        verb_frames_ids = []
+        if self.verb_frames is None:
+            self.load_verb_frames()
         
+        pos_text = pos_model(input_text)
+        for text in pos_text:
+            if text.pos_ == "VERB" and text in self.verb_frames.keys():
+                verb_frames_ids.extend(self.verb_frames[text])
+
+        verb_frames_ids = torch.tensor(verb_frames_ids, dtype=torch.long)
+
         return {
             "input_ids": self.tokenizer(input_text, padding="max_length", truncation=True, return_tensors="pt")["input_ids"],
             "target_ids": self.tokenizer(target_text, padding="max_length", truncation=True, return_tensors="pt")["input_ids"],
+            "verb_frames_ids": verb_frames_ids
         }
 
     def get_tokenized_dataset(self):
@@ -73,6 +96,7 @@ def collate_fn(tokenizer: PreTrainedTokenizerFast, samples: List[Dict]) -> Dict:
     batch = {
         'input_ids': torch.nn.utils.rnn.pad_sequence(input_ids, batch_first=True, padding_value=token_padding),
         'target_ids': torch.nn.utils.rnn.pad_sequence(target_ids, batch_first=True, padding_value=token_padding),
+        #list of ints, verb frames ids, add padding token
     }
     batch['attention_mask'] = batch['input_ids'] != token_padding
     batch['target_ids'][batch['target_ids'] == token_padding] = -100  # Mask padding tokens

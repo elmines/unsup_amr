@@ -38,7 +38,7 @@ class T2A(torch.nn.Module):
 
     def forward(self,
                 input_ids: torch.Tensor,
-                attention_mask: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+                attention_mask: torch.Tensor, verb_frame_ids: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
 
         n_samples = input_ids.shape[0]
 
@@ -49,7 +49,7 @@ class T2A(torch.nn.Module):
         pad_ids = torch.full([n_samples, 1], fill_value=self.pad_token_id, device=input_ids.device)
         embeddings = self.embeddings(pad_ids)
 
-        trackers = [NextTokens(self.vocab_ext) for _ in range(n_samples)]
+        trackers = [NextTokens(self.vocab_ext, verb_frame_ids) for _ in range(n_samples)]
 
         prob_history = []
         pred_history = []

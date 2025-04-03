@@ -57,7 +57,8 @@ class PredictMod(L.LightningModule):
     def predict_step(self, batch, batch_idx) -> List[str]:
         prob_history, _, _ = self.t2a(
             input_ids=batch['input_ids'],
-            attention_mask=batch['attention_mask']
+            attention_mask=batch['attention_mask'], 
+            verb_frame_ids=batch['verb_frame_ids']
         )
         prediction_batch = probs_to_ids(prob_history)
         text_ids = map(lambda t: t.tolist(), batch['input_ids'])

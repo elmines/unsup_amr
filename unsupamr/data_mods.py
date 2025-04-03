@@ -18,7 +18,7 @@ class EuroParlDataModule(L.LightningDataModule):
         self.save_hyperparameters()
 
         self.train_loader: DataLoader = None
-
+        self.vocab_ext = None
 
     def setup(self, stage: str):
         if stage != 'fit':
@@ -28,7 +28,8 @@ class EuroParlDataModule(L.LightningDataModule):
         preprocessor = EuroparlPreprocessor(model_name=self.hparams.pretrained_model,
                                             source_lang=self.hparams.source_lang,
                                             target_lang=self.hparams.target_lang,
-                                            sample_subset=self.hparams.debug_subset)
+                                            sample_subset=self.hparams.debug_subset, 
+                                            vocab_ext=self.vocab_ext)
         tokenized_dataset = preprocessor.get_tokenized_dataset()
     
         # Create dataset and dataloader

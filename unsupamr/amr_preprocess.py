@@ -2,9 +2,11 @@ from typing import Dict, List
 from datasets import load_dataset
 from transformers import AutoTokenizer, PreTrainedTokenizerFast
 import torch
+import spacy 
 import os
-
-
+from .utils import remove_suffix
+from collections import defaultdict
+pos_model = spacy.load("en_core_web_sm")
 from .constants import AMR_DATA_DIR
 
 class AMRPreprocessor:
@@ -26,10 +28,28 @@ class AMRPreprocessor:
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.amr_version = amr_version
         self.data_dir = data_dir
+        self.vocab_ext = None
+        self.verb_frames = None
+        
+    def load_verb_frames(self): 
+        for amr_symbol in self.vocab_ext["amr_symbols"]:
+            if amr_symbol["category"] == "frame":
+                self.verb_frames[remove_suffix(amr_symbol["token"])].append(amr_symbol["id"])
 
     def preprocess(self, sentence: str) -> torch.Tensor:
         """Tokenizes the raw sentence and returns input_ids."""
-        return self.tokenizer(sentence, padding="max_length", truncation=True, return_tensors="pt")["input_ids"]
+        if self.verb_frames is None:
+            self.load_verb_frames()
+        encoding = self.tokenizer(sentence, padding="max_length", truncation=True, return_tensors="pt")["input_ids"]
+        verb_frame_ids = []
+        pos_text = pos_model(sentence)
+        for text in pos_text:
+            if text.pos_ == "VERB" and text in self.verb_frames.keys():
+                verb_frames_ids.extend(self.verb_frames[text])
+
+        verb_frames_ids = torch.tensor(verb_frames_ids, dtype=torch.long)
+        encoding["verb_frame_ids"] = verb_frame_ids
+        return encoding
 
     def process_amr_3(self):
         """Process AMR 3.0 files and extract raw sentences."""
