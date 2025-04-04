@@ -55,8 +55,9 @@ class EuroparlPreprocessor:
     def load_verb_frames(self): 
         for amr_symbol in self.vocab_ext.amr_symbols:
             if amr_symbol.category == AmrCategory.FRAME:
+                import pdb 
+                pdb.set_trace()
                 x = remove_suffix(amr_symbol.token)
-                print(x, "DD")
                 self.verb_frames[x].append(amr_symbol.id)
 
     def preprocess(self, sample: Dict) -> Dict:
