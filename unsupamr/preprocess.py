@@ -97,12 +97,12 @@ def collate_fn(tokenizer: PreTrainedTokenizerFast, samples: List[Dict]) -> Dict:
     token_padding = tokenizer.pad_token_id
     input_ids = [torch.squeeze(s['input_ids'], 0) for s in samples]
     target_ids = [torch.squeeze(s['target_ids'], 0) for s in samples]
-    # verb_frame_ids = [s['verb_frame_ids'] for s in samples]
+    verb_frame_ids = [s['verb_frame_ids'] for s in samples]
 
     batch = {
         'input_ids': torch.nn.utils.rnn.pad_sequence(input_ids, batch_first=True, padding_value=token_padding),
         'target_ids': torch.nn.utils.rnn.pad_sequence(target_ids, batch_first=True, padding_value=token_padding),
-        # 'verb_frame_ids': torch.nn.utils.rnn.pad_sequence(verb_frame_ids, batch_first=True, padding_value=0)
+        'verb_frame_ids': torch.nn.utils.rnn.pad_sequence(verb_frame_ids, batch_first=True, padding_value=0)
     }
     batch['attention_mask'] = batch['input_ids'] != token_padding
     batch['target_ids'][batch['target_ids'] == token_padding] = -100  # Mask padding tokens
@@ -119,6 +119,7 @@ class EuroparlTranslationDataset(Dataset):
 
     def __getitem__(self, idx):
         sample = self.dataset[idx]
+        print(sample)
         return {
             "input_ids": torch.tensor(sample["input_ids"]).squeeze(0),
             "target_ids": torch.tensor(sample["target_ids"]).squeeze(0),
