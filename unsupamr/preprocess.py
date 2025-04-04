@@ -72,7 +72,7 @@ class EuroparlPreprocessor:
                 verb_frames_ids.extend(self.verb_frames[text])
 
         verb_frames_ids = torch.tensor(verb_frames_ids, dtype=torch.long)
-
+        print("VERB_FRAMES_IDS", verb_frames_ids)
         return {
             "input_ids": self.tokenizer(input_text, padding="max_length", truncation=True, return_tensors="pt")["input_ids"],
             "target_ids": self.tokenizer(target_text, padding="max_length", truncation=True, return_tensors="pt")["input_ids"],

@@ -34,7 +34,6 @@ class AMRPreprocessor:
     def load_verb_frames(self): 
         self.verb_frames = defaultdict(list)
         for amr_symbol in self.vocab_ext.amr_symbols:
-            print(amr_symbol.category)
             if amr_symbol.category == AmrCategory.FRAME:
                 self.verb_frames[remove_suffix(amr_symbol.token)].append(amr_symbol.id)
 
@@ -51,6 +50,7 @@ class AMRPreprocessor:
                 verb_frames_ids.extend(self.verb_frames[text])
 
         verb_frames_ids = torch.tensor(verb_frames_ids, dtype=torch.long)
+        print("VERB_FRAMES_IDS", verb_frames_ids)
         encoding["verb_frame_ids"] = verb_frame_ids
         return encoding
 
