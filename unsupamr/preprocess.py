@@ -67,9 +67,7 @@ class EuroparlPreprocessor:
         verb_frame_ids = []
         if self.verb_frames is None:
             self.load_verb_frames()
-        
         pos_text = pos_model(input_text)
-        print(self.verb_frames.keys(), "FRAMES")
         for text in pos_text:
             if text.pos_ == "VERB" and text.lemma_ in self.verb_frames.keys():
                 verb_frame_ids.extend(self.verb_frames[text])
