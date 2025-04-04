@@ -50,7 +50,6 @@ class AMRPreprocessor:
                 verb_frames_ids.extend(self.verb_frames[text])
 
         verb_frames_ids = torch.tensor(verb_frames_ids, dtype=torch.long)
-        print("VERB_FRAMES_IDS", verb_frames_ids)
         encoding["verb_frame_ids"] = verb_frame_ids
         return encoding
 
@@ -130,6 +129,7 @@ def amr_collate_fn(tokenizer: PreTrainedTokenizerFast, samples: List[Dict]) -> D
 
     batch = {
         'input_ids': torch.nn.utils.rnn.pad_sequence(input_ids, batch_first=True, padding_value=token_padding),
+        'verb_frame_ids': torch.nn.utils.rnn.pad_sequence(samples, batch_first=True, padding_value=0)
     }
     batch['attention_mask'] = batch['input_ids'] != token_padding
 
