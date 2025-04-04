@@ -56,7 +56,7 @@ class EuroparlPreprocessor:
         for amr_symbol in self.vocab_ext.amr_symbols:
             if amr_symbol.category == AmrCategory.FRAME:
                 x = remove_suffix(amr_symbol.token)
-                print(x)
+                print(x, "DD")
                 self.verb_frames[x].append(amr_symbol.id)
 
     def preprocess(self, sample: Dict) -> Dict:
