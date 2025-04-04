@@ -72,7 +72,7 @@ class EuroparlPreprocessor:
                 verb_frames_ids.extend(self.verb_frames[text])
 
         verb_frames_ids = torch.tensor(verb_frames_ids, dtype=torch.long)
-        print("VERB_FRAMES_IDS", verb_frames_ids)
+        
         return {
             "input_ids": self.tokenizer(input_text, padding="max_length", truncation=True, return_tensors="pt")["input_ids"],
             "target_ids": self.tokenizer(target_text, padding="max_length", truncation=True, return_tensors="pt")["input_ids"],
@@ -98,7 +98,7 @@ def collate_fn(tokenizer: PreTrainedTokenizerFast, samples: List[Dict]) -> Dict:
     batch = {
         'input_ids': torch.nn.utils.rnn.pad_sequence(input_ids, batch_first=True, padding_value=token_padding),
         'target_ids': torch.nn.utils.rnn.pad_sequence(target_ids, batch_first=True, padding_value=token_padding),
-        #list of ints, verb frames ids, add padding token
+        'verb_frame_ids': torch.nn.utils.rnn.pad_sequence(samples, batch_first=True, padding_value=0)
     }
     batch['attention_mask'] = batch['input_ids'] != token_padding
     batch['target_ids'][batch['target_ids'] == token_padding] = -100  # Mask padding tokens
