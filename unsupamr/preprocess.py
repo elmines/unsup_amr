@@ -48,15 +48,13 @@ class EuroparlPreprocessor:
             
         self.source_lang = source_lang
         self.target_lang = target_lang
-        self.verb_frames = defaultdict(list)
         self.vocab_ext = vocab_ext
         self.verb_frames = None
        
     def load_verb_frames(self): 
+        self.verb_frames = defaultdict(list)
         for amr_symbol in self.vocab_ext.amr_symbols:
             if amr_symbol.category == AmrCategory.FRAME:
-                import pdb 
-                pdb.set_trace()
                 x = remove_suffix(amr_symbol.token)
                 self.verb_frames[x].append(amr_symbol.id)
 

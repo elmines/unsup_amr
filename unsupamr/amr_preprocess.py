@@ -32,6 +32,7 @@ class AMRPreprocessor:
         self.verb_frames = None
         
     def load_verb_frames(self): 
+        self.verb_frames = defaultdict(list)
         for amr_symbol in self.vocab_ext.amr_symbols:
             print(amr_symbol.category)
             if amr_symbol.category == AmrCategory.FRAME:
