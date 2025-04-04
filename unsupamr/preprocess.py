@@ -62,7 +62,6 @@ class EuroparlPreprocessor:
 
     def preprocess(self, sample: Dict) -> Dict:
         """Tokenizes input and target sentences."""
-        print("PREPROCESSING CALLED")
         input_text = sample["translation"][self.source_lang]  # Source language input
         target_text = sample["translation"][self.target_lang]  # Target language translation
         verb_frame_ids = []
@@ -70,6 +69,7 @@ class EuroparlPreprocessor:
             self.load_verb_frames()
         
         pos_text = pos_model(input_text)
+        print(pos_text, "POS_TEXT")
         for text in pos_text:
             if text.pos_ == "VERB" and text in self.verb_frames.keys():
                 verb_frame_ids.extend(self.verb_frames[text])
@@ -95,7 +95,6 @@ def collate_fn(tokenizer: PreTrainedTokenizerFast, samples: List[Dict]) -> Dict:
     - Sets padding tokens in target sequences to -100 for loss masking
     """
     
-    print("COLLATE FN CALLED")
     token_padding = tokenizer.pad_token_id
     input_ids = [torch.squeeze(s['input_ids'], 0) for s in samples]
     target_ids = [torch.squeeze(s['target_ids'], 0) for s in samples]
@@ -121,7 +120,6 @@ class EuroparlTranslationDataset(Dataset):
 
     def __getitem__(self, idx):
         sample = self.dataset[idx]
-        print(sample)
         return {
             "input_ids": torch.tensor(sample["input_ids"]).squeeze(0),
             "target_ids": torch.tensor(sample["target_ids"]).squeeze(0),
