@@ -7,7 +7,7 @@ import os
 from .utils import remove_suffix
 from collections import defaultdict
 pos_model = spacy.load("en_core_web_sm")
-from .constants import AMR_DATA_DIR
+from .constants import AMR_DATA_DIR, AmrCategory
 
 class AMRPreprocessor:
     """
@@ -32,9 +32,11 @@ class AMRPreprocessor:
         self.verb_frames = None
         
     def load_verb_frames(self): 
-        for amr_symbol in self.vocab_ext["amr_symbols"]:
-            if amr_symbol["category"] == "frame":
-                self.verb_frames[remove_suffix(amr_symbol["token"])].append(amr_symbol["id"])
+        for amr_symbol in self.vocab_ext.amr_symbols:
+            print(amr_symbol.category)
+            if amr_symbol.category == AmrCategory.FRAME:
+                self.verb_frames[remove_suffix(amr_symbol.token)].append(amr_symbol.id)
+
 
     def preprocess(self, sentence: str) -> torch.Tensor:
         """Tokenizes the raw sentence and returns input_ids."""

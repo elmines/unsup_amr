@@ -4,6 +4,7 @@ import torch
 import spacy
 from torch.utils.data import Dataset, DataLoader
 from typing import List, Dict
+from .constants import AmrCategory
 # Local
 from .constants import DEFAULT_SEQ_MODEL
 from .utils import remove_suffix
@@ -54,9 +55,9 @@ class EuroparlPreprocessor:
     def load_verb_frames(self): 
         for amr_symbol in self.vocab_ext.amr_symbols:
             print(amr_symbol.category)
-            if amr_symbol.category == "frame":
+            if amr_symbol.category == AmrCategory.FRAME:
                 self.verb_frames[remove_suffix(amr_symbol.token)].append(amr_symbol.id)
-        print("THIS IS RUN", self.verb_frames)
+
     def preprocess(self, sample: Dict) -> Dict:
         """Tokenizes input and target sentences."""
         input_text = sample["translation"][self.source_lang]  # Source language input
