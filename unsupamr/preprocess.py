@@ -10,7 +10,7 @@ from .constants import DEFAULT_SEQ_MODEL
 from .utils import remove_suffix
 from collections import defaultdict
 pos_model = spacy.load("en_core_web_sm")
-
+import pdb 
 
 class EuroparlPreprocessor:
     """
@@ -60,6 +60,7 @@ class EuroparlPreprocessor:
 
     def preprocess(self, sample: Dict) -> Dict:
         """Tokenizes input and target sentences."""
+        pdb.set_trace()
         input_text = sample["translation"][self.source_lang]  # Source language input
         target_text = sample["translation"][self.target_lang]  # Target language translation
         verb_frame_ids = []
@@ -91,7 +92,8 @@ def collate_fn(tokenizer: PreTrainedTokenizerFast, samples: List[Dict]) -> Dict:
     - Creates attention mask
     - Sets padding tokens in target sequences to -100 for loss masking
     """
-    print(samples[0].keys())
+    
+    pdb.set_trace()
     token_padding = tokenizer.pad_token_id
     input_ids = [torch.squeeze(s['input_ids'], 0) for s in samples]
     target_ids = [torch.squeeze(s['target_ids'], 0) for s in samples]
