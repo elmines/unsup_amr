@@ -55,7 +55,7 @@ class EuroparlPreprocessor:
         for amr_symbol in self.vocab_ext.amr_symbols:
             if amr_symbol.category == "frame":
                 self.verb_frames[remove_suffix(amr_symbol.token)].append(amr_symbol.id)
-
+        print("THIS IS RUN", self.verb_frames)
     def preprocess(self, sample: Dict) -> Dict:
         """Tokenizes input and target sentences."""
         input_text = sample["translation"][self.source_lang]  # Source language input
