@@ -126,10 +126,10 @@ def amr_collate_fn(tokenizer: PreTrainedTokenizerFast, samples: List[Dict]) -> D
     """
     token_padding = tokenizer.pad_token_id
     input_ids = [torch.squeeze(s['input_ids'], 0) for s in samples]
-
+    verb_frame_ids = [s['verb_frame_ids'] for s in samples]
     batch = {
         'input_ids': torch.nn.utils.rnn.pad_sequence(input_ids, batch_first=True, padding_value=token_padding),
-        'verb_frame_ids': torch.nn.utils.rnn.pad_sequence(samples['verb_frame_ids'], batch_first=True, padding_value=0)
+        'verb_frame_ids': torch.nn.utils.rnn.pad_sequence(verb_frame_ids, batch_first=True, padding_value=0)
     }
     batch['attention_mask'] = batch['input_ids'] != token_padding
 
