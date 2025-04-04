@@ -64,7 +64,7 @@ class EuroparlPreprocessor:
         """Tokenizes input and target sentences."""
         input_text = sample["translation"][self.source_lang]  # Source language input
         target_text = sample["translation"][self.target_lang]  # Target language translation
-        verb_frame_ids = []
+        verb_frame_ids = [0]
         if self.verb_frames is None:
             self.load_verb_frames()
         pos_text = pos_model(input_text)

@@ -43,7 +43,7 @@ class AMRPreprocessor:
         if self.verb_frames is None:
             self.load_verb_frames()
         encoding = self.tokenizer(sentence, padding="max_length", truncation=True, return_tensors="pt")["input_ids"]
-        verb_frame_ids = []
+        verb_frame_ids = [0]
         pos_text = pos_model(sentence)
         for text in pos_text:
             if text.pos_ == "VERB" and text.lemma_ in self.verb_frames.keys():
