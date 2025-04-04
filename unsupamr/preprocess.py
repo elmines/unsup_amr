@@ -52,9 +52,9 @@ class EuroparlPreprocessor:
         self.verb_frames = None
        
     def load_verb_frames(self): 
-        for amr_symbol in self.vocab_ext["amr_symbols"]:
-            if amr_symbol["category"] == "frame":
-                self.verb_frames[remove_suffix(amr_symbol["token"])].append(amr_symbol["id"])
+        for amr_symbol in self.vocab_ext.amr_symbols:
+            if amr_symbol.category == "frame":
+                self.verb_frames[remove_suffix(amr_symbol.token)].append(amr_symbol.id)
 
     def preprocess(self, sample: Dict) -> Dict:
         """Tokenizes input and target sentences."""
