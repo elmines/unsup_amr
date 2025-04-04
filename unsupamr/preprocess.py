@@ -120,7 +120,7 @@ class EuroparlTranslationDataset(Dataset):
         return {
             "input_ids": torch.tensor(sample["input_ids"]).squeeze(0),
             "target_ids": torch.tensor(sample["target_ids"]).squeeze(0),
-            "verb_frame_ids": torch.tensor(sample["verb_frame_ids"]).squeeze(0)
+            "verb_frame_ids": torch.tensor(sample["verb_frame_ids"])
         }
 
 def preprocess_europarl(model_name=DEFAULT_SEQ_MODEL, source_lang="en", target_lang="es", batch_size=32, sample_subset=False):

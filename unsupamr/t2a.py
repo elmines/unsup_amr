@@ -49,7 +49,7 @@ class T2A(torch.nn.Module):
         pad_ids = torch.full([n_samples, 1], fill_value=self.pad_token_id, device=input_ids.device)
         embeddings = self.embeddings(pad_ids)
 
-        trackers = [NextTokens(self.vocab_ext, verb_frame_ids) for _ in range(n_samples)]
+        trackers = [NextTokens(self.vocab_ext, sample_verb_frame_ids) for sample_verb_frame_ids in verb_frame_ids]
 
         prob_history = []
         pred_history = []
