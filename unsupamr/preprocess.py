@@ -60,7 +60,7 @@ class EuroparlPreprocessor:
 
     def preprocess(self, sample: Dict) -> Dict:
         """Tokenizes input and target sentences."""
-        pdb.set_trace()
+        print("PREPROCESSING CALLED")
         input_text = sample["translation"][self.source_lang]  # Source language input
         target_text = sample["translation"][self.target_lang]  # Target language translation
         verb_frame_ids = []
@@ -93,7 +93,7 @@ def collate_fn(tokenizer: PreTrainedTokenizerFast, samples: List[Dict]) -> Dict:
     - Sets padding tokens in target sequences to -100 for loss masking
     """
     
-    pdb.set_trace()
+    print("COLLATE FN CALLED")
     token_padding = tokenizer.pad_token_id
     input_ids = [torch.squeeze(s['input_ids'], 0) for s in samples]
     target_ids = [torch.squeeze(s['target_ids'], 0) for s in samples]
