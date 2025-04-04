@@ -62,21 +62,21 @@ class EuroparlPreprocessor:
         """Tokenizes input and target sentences."""
         input_text = sample["translation"][self.source_lang]  # Source language input
         target_text = sample["translation"][self.target_lang]  # Target language translation
-        verb_frames_ids = []
+        verb_frame_ids = []
         if self.verb_frames is None:
             self.load_verb_frames()
         
         pos_text = pos_model(input_text)
         for text in pos_text:
             if text.pos_ == "VERB" and text in self.verb_frames.keys():
-                verb_frames_ids.extend(self.verb_frames[text])
+                verb_frame_ids.extend(self.verb_frames[text])
 
-        verb_frames_ids = torch.tensor(verb_frames_ids, dtype=torch.long)
+        verb_frame_ids = torch.tensor(verb_frame_ids, dtype=torch.long)
         
         return {
             "input_ids": self.tokenizer(input_text, padding="max_length", truncation=True, return_tensors="pt")["input_ids"],
             "target_ids": self.tokenizer(target_text, padding="max_length", truncation=True, return_tensors="pt")["input_ids"],
-            "verb_frames_ids": verb_frames_ids
+            "verb_frame_ids": verb_frame_ids
         }
 
     def get_tokenized_dataset(self):

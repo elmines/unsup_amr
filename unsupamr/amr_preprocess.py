@@ -47,9 +47,9 @@ class AMRPreprocessor:
         pos_text = pos_model(sentence)
         for text in pos_text:
             if text.pos_ == "VERB" and text in self.verb_frames.keys():
-                verb_frames_ids.extend(self.verb_frames[text])
+                verb_frame_ids.extend(self.verb_frames[text])
 
-        verb_frames_ids = torch.tensor(verb_frames_ids, dtype=torch.long)
+        verb_frame_ids = torch.tensor(verb_frame_ids, dtype=torch.long)
         encoding["verb_frame_ids"] = verb_frame_ids
         return encoding
 
