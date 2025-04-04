@@ -53,6 +53,7 @@ class EuroparlPreprocessor:
        
     def load_verb_frames(self): 
         for amr_symbol in self.vocab_ext.amr_symbols:
+            print(amr_symbol.category)
             if amr_symbol.category == "frame":
                 self.verb_frames[remove_suffix(amr_symbol.token)].append(amr_symbol.id)
         print("THIS IS RUN", self.verb_frames)
