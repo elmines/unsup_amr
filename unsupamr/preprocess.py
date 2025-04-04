@@ -9,6 +9,7 @@ from .constants import AmrCategory
 from .constants import DEFAULT_SEQ_MODEL
 from .utils import remove_suffix
 from collections import defaultdict
+from datasets import disable_caching 
 pos_model = spacy.load("en_core_web_sm")
 import pdb 
 
@@ -50,6 +51,7 @@ class EuroparlPreprocessor:
         self.target_lang = target_lang
         self.vocab_ext = vocab_ext
         self.verb_frames = None
+        disable_caching()
        
     def load_verb_frames(self): 
         self.verb_frames = defaultdict(list)
