@@ -91,6 +91,7 @@ def collate_fn(tokenizer: PreTrainedTokenizerFast, samples: List[Dict]) -> Dict:
     - Creates attention mask
     - Sets padding tokens in target sequences to -100 for loss masking
     """
+    print(samples[0].keys())
     token_padding = tokenizer.pad_token_id
     input_ids = [torch.squeeze(s['input_ids'], 0) for s in samples]
     target_ids = [torch.squeeze(s['target_ids'], 0) for s in samples]
