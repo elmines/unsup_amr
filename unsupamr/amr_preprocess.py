@@ -45,6 +45,7 @@ class AMRPreprocessor:
         encoding = self.tokenizer(sentence, padding="max_length", truncation=True, return_tensors="pt")["input_ids"]
         verb_frame_ids = []
         pos_text = pos_model(sentence)
+        print(self.verb_frames.keys())
         for text in pos_text:
             if text.pos_ == "VERB" and text in self.verb_frames.keys():
                 verb_frame_ids.extend(self.verb_frames[text])

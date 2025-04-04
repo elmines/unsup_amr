@@ -69,9 +69,9 @@ class EuroparlPreprocessor:
             self.load_verb_frames()
         
         pos_text = pos_model(input_text)
-        print(pos_text, "POS_TEXT")
+        print(self.verb_frames.keys(), "FRAMES")
         for text in pos_text:
-            if text.pos_ == "VERB" and text in self.verb_frames.keys():
+            if text.pos_ == "VERB" and text.lemma_ in self.verb_frames.keys():
                 verb_frame_ids.extend(self.verb_frames[text])
 
         verb_frame_ids = torch.tensor(verb_frame_ids, dtype=torch.long)
