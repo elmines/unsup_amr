@@ -94,7 +94,8 @@ def collate_fn(tokenizer: PreTrainedTokenizerFast, samples: List[Dict]) -> Dict:
     token_padding = tokenizer.pad_token_id
     input_ids = [torch.squeeze(s['input_ids'], 0) for s in samples]
     target_ids = [torch.squeeze(s['target_ids'], 0) for s in samples]
-
+    import pdb 
+    pdb.set_trace()
     batch = {
         'input_ids': torch.nn.utils.rnn.pad_sequence(input_ids, batch_first=True, padding_value=token_padding),
         'target_ids': torch.nn.utils.rnn.pad_sequence(target_ids, batch_first=True, padding_value=token_padding),
