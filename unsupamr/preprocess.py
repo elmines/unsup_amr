@@ -1,10 +1,17 @@
 from datasets import load_dataset
 from transformers import AutoTokenizer, PreTrainedTokenizerFast
 import torch
+import spacy
 from torch.utils.data import Dataset, DataLoader
 from typing import List, Dict
+from .constants import AmrCategory
 # Local
 from .constants import DEFAULT_SEQ_MODEL
+from .utils import remove_suffix
+from collections import defaultdict
+from datasets import disable_caching 
+pos_model = spacy.load("en_core_web_sm")
+
 
 class EuroparlPreprocessor:
     """
@@ -13,7 +20,7 @@ class EuroparlPreprocessor:
     - Tokenizes text
     - Applies padding and truncation
     """
-    def __init__(self, model_name=DEFAULT_SEQ_MODEL, source_lang="en", target_lang="en", sample_subset=False):
+    def __init__(self, model_name=DEFAULT_SEQ_MODEL, source_lang="en", target_lang="en", sample_subset=False, vocab_ext=None):
         """
         Initialize with model name and source/target languages.
         Args:
@@ -22,7 +29,6 @@ class EuroparlPreprocessor:
         - target_lang (str): The language of the output sentences (e.g., "es").
         """
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-
         lang_datamap = {
             ("en", "en") : "en-es",
             ("es", "es") : "en-es",
@@ -43,15 +49,35 @@ class EuroparlPreprocessor:
             
         self.source_lang = source_lang
         self.target_lang = target_lang
+        self.vocab_ext = vocab_ext
+        self.verb_frames = None
+        disable_caching()
+       
+    def load_verb_frames(self): 
+        self.verb_frames = defaultdict(list)
+        for amr_symbol in self.vocab_ext.amr_symbols:
+            if amr_symbol.category == AmrCategory.FRAME:
+                x = remove_suffix(amr_symbol.token)
+                self.verb_frames[x].append(amr_symbol.id)
+        self.verb_frames = dict(self.verb_frames)
 
     def preprocess(self, sample: Dict) -> Dict:
         """Tokenizes input and target sentences."""
         input_text = sample["translation"][self.source_lang]  # Source language input
         target_text = sample["translation"][self.target_lang]  # Target language translation
+        verb_frame_ids = [0]
+        if self.verb_frames is None:
+            self.load_verb_frames()
+        pos_text = pos_model(input_text)
+        for text in pos_text:
+            if text.pos_ == "VERB" and text.lemma_ in self.verb_frames.keys():
+                verb_frame_ids.extend(self.verb_frames[text.lemma_])
+        verb_frame_ids = torch.tensor(verb_frame_ids, dtype=torch.long)
         
         return {
             "input_ids": self.tokenizer(input_text, padding="max_length", truncation=True, return_tensors="pt")["input_ids"],
             "target_ids": self.tokenizer(target_text, padding="max_length", truncation=True, return_tensors="pt")["input_ids"],
+            "verb_frame_ids": verb_frame_ids
         }
 
     def get_tokenized_dataset(self):
@@ -66,13 +92,16 @@ def collate_fn(tokenizer: PreTrainedTokenizerFast, samples: List[Dict]) -> Dict:
     - Creates attention mask
     - Sets padding tokens in target sequences to -100 for loss masking
     """
+    
     token_padding = tokenizer.pad_token_id
     input_ids = [torch.squeeze(s['input_ids'], 0) for s in samples]
     target_ids = [torch.squeeze(s['target_ids'], 0) for s in samples]
+    verb_frame_ids = [s['verb_frame_ids'] for s in samples]
 
     batch = {
         'input_ids': torch.nn.utils.rnn.pad_sequence(input_ids, batch_first=True, padding_value=token_padding),
         'target_ids': torch.nn.utils.rnn.pad_sequence(target_ids, batch_first=True, padding_value=token_padding),
+        'verb_frame_ids': torch.nn.utils.rnn.pad_sequence(verb_frame_ids, batch_first=True, padding_value=0)
     }
     batch['attention_mask'] = batch['input_ids'] != token_padding
     batch['target_ids'][batch['target_ids'] == token_padding] = -100  # Mask padding tokens
@@ -92,6 +121,7 @@ class EuroparlTranslationDataset(Dataset):
         return {
             "input_ids": torch.tensor(sample["input_ids"]).squeeze(0),
             "target_ids": torch.tensor(sample["target_ids"]).squeeze(0),
+            "verb_frame_ids": torch.tensor(sample["verb_frame_ids"])
         }
 
 def preprocess_europarl(model_name=DEFAULT_SEQ_MODEL, source_lang="en", target_lang="es", batch_size=32, sample_subset=False):
