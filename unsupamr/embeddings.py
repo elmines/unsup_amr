@@ -1,10 +1,8 @@
 # STL
 # 3rd Party
-import json
 import torch
 # Local
 from .utils import VocabExt
-
 
 def expand_lm_head(head: torch.nn.Linear, vocab: VocabExt, load_old_head_weights: bool = True) -> torch.nn.Linear:
     
