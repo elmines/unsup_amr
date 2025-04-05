@@ -16,7 +16,7 @@ class AMRPreprocessor:
     - Tokenizes sentences
     - Returns input_ids for model evaluation
     """
-    def __init__(self, model_name="bert-base-multilingual-cased", amr_version="3.0", data_dir=AMR_DATA_DIR):
+    def __init__(self, vocab_ext, model_name="bert-base-multilingual-cased", amr_version="3.0", data_dir=AMR_DATA_DIR):
         """
         Initialize the preprocessor.
         
@@ -28,7 +28,7 @@ class AMRPreprocessor:
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.amr_version = amr_version
         self.data_dir = data_dir
-        self.vocab_ext = None
+        self.vocab_ext = vocab_ext
         self.verb_frames = None
         
     def load_verb_frames(self): 
@@ -36,6 +36,7 @@ class AMRPreprocessor:
         for amr_symbol in self.vocab_ext.amr_symbols:
             if amr_symbol.category == AmrCategory.FRAME:
                 self.verb_frames[remove_suffix(amr_symbol.token)].append(amr_symbol.id)
+        self.verb_frames = dict(self.verb_frames)
 
 
     def preprocess(self, sentence: str) -> torch.Tensor:
@@ -50,8 +51,10 @@ class AMRPreprocessor:
                 verb_frame_ids.extend(self.verb_frames[text.lemma_])
 
         verb_frame_ids = torch.tensor(verb_frame_ids, dtype=torch.long)
-        encoding["verb_frame_ids"] = verb_frame_ids
-        return encoding
+        return {
+            "input_ids": encoding,
+            "verb_frame_ids": verb_frame_ids
+        }
 
     def process_amr_3(self):
         """Process AMR 3.0 files and extract raw sentences."""
@@ -113,9 +116,7 @@ class AMRInputIDDataset(torch.utils.data.Dataset):
         return len(self.dataset)
 
     def __getitem__(self, idx):
-        return {
-            'input_ids': torch.tensor(self.dataset[idx])
-        }
+        return self.dataset[idx]
 
 def amr_collate_fn(tokenizer: PreTrainedTokenizerFast, samples: List[Dict]) -> Dict:
     """

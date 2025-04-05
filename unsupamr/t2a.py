@@ -20,7 +20,8 @@ class T2A(torch.nn.Module):
                  vocab_ext: VocabExt,
                  temperature: float = DEFAULT_TEMP,
                  smoothing: float = DEFAULT_SMOOTHING,
-                 max_iterations: int = DEFAULT_MAX_GRAPH_SIZE):
+                 max_iterations: int = DEFAULT_MAX_GRAPH_SIZE,
+                 limit_frame_ids: bool = False):
         super().__init__()
         self.config = pretrained.config
         self.pad_token_id: int = self.config.pad_token_id
@@ -33,6 +34,7 @@ class T2A(torch.nn.Module):
         self.temperature = temperature
         self.max_iterations = max_iterations
         self.smoothing = smoothing
+        self.limit_frame_ids = limit_frame_ids
 
         assert self.encoder.get_input_embeddings() is self.decoder.get_input_embeddings()
 
@@ -49,7 +51,8 @@ class T2A(torch.nn.Module):
         pad_ids = torch.full([n_samples, 1], fill_value=self.pad_token_id, device=input_ids.device)
         embeddings = self.embeddings(pad_ids)
 
-        trackers = [NextTokens(self.vocab_ext, sample_verb_frame_ids) for sample_verb_frame_ids in verb_frame_ids]
+        trackers = [NextTokens(self.vocab_ext, sample_verb_frame_ids, self.limit_frame_ids)
+                    for sample_verb_frame_ids in verb_frame_ids]
 
         prob_history = []
         pred_history = []

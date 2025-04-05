@@ -20,7 +20,8 @@ class PredictMod(L.LightningModule):
                pretrained_model: str = DEFAULT_SEQ_MODEL,
                temperature: float = DEFAULT_TEMP,
                smoothing: float = DEFAULT_SMOOTHING,
-               max_graph_size: int = DEFAULT_MAX_GRAPH_SIZE):
+               max_graph_size: int = DEFAULT_MAX_GRAPH_SIZE,
+               limit_frame_ids: bool = False):
         super().__init__()
         self.save_hyperparameters()
 
@@ -29,7 +30,12 @@ class PredictMod(L.LightningModule):
         self.embeddings = expand_embedding(pretrained_a.get_input_embeddings(), self.vocab_ext)
         pretrained_a.set_input_embeddings(self.embeddings)
         pretrained_a.lm_head = expand_lm_head(pretrained_a.lm_head, self.vocab_ext)
-        self.t2a = T2A(pretrained_a, self.vocab_ext, temperature=temperature, smoothing=smoothing, max_iterations = max_graph_size)
+        self.t2a = T2A(pretrained_a,
+                       self.vocab_ext,
+                       temperature=temperature,
+                       smoothing=smoothing,
+                       max_iterations = max_graph_size,
+                       limit_frame_ids=limit_frame_ids)
         self.embeddings.eval()
         self.t2a.eval()
 

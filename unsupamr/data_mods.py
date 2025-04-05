@@ -60,6 +60,7 @@ class AMRDataModule(L.LightningDataModule):
         self.save_hyperparameters()
 
         self.test_loader: DataLoader = None
+        self.vocab_ext = None
 
     def predict_dataloader(self):
         return self.test_loader
@@ -75,7 +76,8 @@ class AMRDataModule(L.LightningDataModule):
         self.preprocessor = AMRPreprocessor(
             model_name=self.hparams.pretrained_model,
             amr_version=self.hparams.amr_version,
-            data_dir=self.hparams.data_dir
+            data_dir=self.hparams.data_dir,
+            vocab_ext=self.vocab_ext
         )
         tokenized_dataset = self.preprocessor.get_input_ids()
     

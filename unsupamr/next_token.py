@@ -9,7 +9,7 @@ from collections import deque
 from .utils import VocabExt
 
 class NextTokens:
-    def __init__(self, vocab: VocabExt, verb_frame_ids: torch.Tensor):
+    def __init__(self, vocab: VocabExt, verb_frame_ids: torch.Tensor, limit_frame_ids = False):
 
         self.vf = vocab.vf
         """
@@ -40,12 +40,19 @@ class NextTokens:
         self.__error_mask = self.__pad_mask
 
         # Allow any verb frame
-        self.verb_frame_ids = verb_frame_ids
+        self.verb_frame_ids = set(verb_frame_ids.detach().cpu().tolist())
+        self.verb_frame_ids.remove(0)
         self.__vf_mask = torch.tensor([
-            0. if (k in self.vf and k in self.verb_frame_ids) else -math.inf for k in range(self.vocab_size)
+            0. if (k in self.vf and \
+                   ((not limit_frame_ids) or (not self.verb_frame_ids) or k in self.verb_frame_ids)
+            ) else -math.inf for k in range(self.vocab_size)
         ])
         self.__vf_or_concept_mask = torch.tensor([
-            0. if (k in self.concept_idxs or (k in self.vf and k in self.verb_frame_ids)) else -math.inf for k in range(self.vocab_size)
+            0. if (k in self.concept_idxs or \
+                   (k in self.vf and \
+                        ((not limit_frame_ids) or (not self.verb_frame_ids) or k in self.verb_frame_ids)
+                    )
+            ) else -math.inf for k in range(self.vocab_size)
         ])
 
         #mask all the verb frame indices that are not in the verb_frame_ids tensor

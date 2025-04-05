@@ -152,4 +152,4 @@ class VocabExt:
 
 
 def remove_suffix(text):
-    return re.sub(r"-.*", "", text)
+    return re.sub(r"-[0-9]{2}", "", text)

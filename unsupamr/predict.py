@@ -21,6 +21,7 @@ if __name__ == "__main__":
         run = False,   
         )
 
+    cli.datamodule.vocab_ext = cli.model.vocab_ext
     output_path = cli.config.output_path
     print(f"Predictions will be saved to: {output_path}")
 
