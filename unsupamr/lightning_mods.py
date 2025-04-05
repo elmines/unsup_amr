@@ -21,7 +21,8 @@ class TrainingMod(L.LightningModule):
                  max_graph_size: int = DEFAULT_MAX_GRAPH_SIZE,
                  new_lm_head_scheme: bool = False,
                  log_gradients: bool = False,
-                 log_concept_rates: bool = False):
+                 log_concept_rates: bool = False,
+                 limit_frame_ids: bool = False):
         super().__init__()
         self.save_hyperparameters()
 
@@ -33,7 +34,8 @@ class TrainingMod(L.LightningModule):
         pretrained_a.set_input_embeddings(self.embeddings)
         pretrained_a.lm_head = expand_lm_head(pretrained_a.lm_head, self.vocab_ext, load_old_head_weights=not new_lm_head_scheme)
         self.t2a = T2A(pretrained_a, self.vocab_ext, temperature=temperature, smoothing=smoothing, max_iterations=max_graph_size,
-                       logger=self.log if log_concept_rates else None)
+                       logger=self.log if log_concept_rates else None,
+                       limit_frame_ids=limit_frame_ids)
 
         self.a2t = T5ForConditionalGeneration.from_pretrained(pretrained_model)
         self.a2t.set_input_embeddings(self.embeddings)
@@ -104,7 +106,8 @@ class TrainingMod(L.LightningModule):
     def training_step(self, batch, batch_idx):
         prob_history, embeddings, pred_attention_mask = self.t2a(
             input_ids=batch['input_ids'],
-            attention_mask=batch['attention_mask']
+            attention_mask=batch['attention_mask'], 
+            verb_frame_ids=batch['verb_frame_ids']
         )
 
         output = self.a2t(inputs_embeds=embeddings,
@@ -117,7 +120,8 @@ class TrainingMod(L.LightningModule):
     def validation_step(self, batch, batch_idx):
         prob_history, _, _ = self.t2a(
             input_ids=batch['input_ids'],
-            attention_mask=batch['attention_mask']
+            attention_mask=batch['attention_mask'], 
+            verb_frame_ids=batch['verb_frame_ids']
         )
         prediction_batch = probs_to_ids(prob_history)
         text_ids = map(lambda t: t.tolist(), batch['input_ids'])

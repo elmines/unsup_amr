@@ -149,3 +149,7 @@ class VocabExt:
         for amr_symbol in self.amr_symbols:
             self.__id_to_token[amr_symbol.id] = amr_symbol.token
         self.__known_valid = {tokenizer.eos_token, tokenizer.pad_token} | {ent.token for ent in self.amr_symbols}
+
+
+def remove_suffix(text):
+    return re.sub(r"-[0-9]{2}", "", text)

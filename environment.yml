@@ -25,5 +25,8 @@ dependencies:
   - tqdm
   - ipywidgets
 
+  - spacy
+  - spacy-model-en_core_web_sm
+
   - pip:
     - jsonargparse[signatures]

@@ -21,7 +21,8 @@ class T2A(torch.nn.Module):
                  temperature: float = DEFAULT_TEMP,
                  smoothing: float = DEFAULT_SMOOTHING,
                  max_iterations: int = DEFAULT_MAX_GRAPH_SIZE,
-                 logger: Optional[Callable[[str, float], None]] = None):
+                 logger: Optional[Callable[[str, float], None]] = None,
+                 limit_frame_ids: bool = False):
         super().__init__()
         self.config = pretrained.config
         self.pad_token_id: int = self.config.pad_token_id
@@ -34,6 +35,7 @@ class T2A(torch.nn.Module):
         self.temperature = temperature
         self.max_iterations = max_iterations
         self.smoothing = smoothing
+        self.limit_frame_ids = limit_frame_ids
 
         # Logging
         self.logger = logger
@@ -43,7 +45,7 @@ class T2A(torch.nn.Module):
 
     def forward(self,
                 input_ids: torch.Tensor,
-                attention_mask: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+                attention_mask: torch.Tensor, verb_frame_ids: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
 
         log_unmasked_concepts = torch.tensor(0, dtype=torch.long, device=input_ids.device)
         log_nonzero_concepts = torch.tensor(0, dtype=torch.long, device=input_ids.device)
@@ -57,7 +59,8 @@ class T2A(torch.nn.Module):
         pad_ids = torch.full([n_samples, 1], fill_value=self.pad_token_id, device=input_ids.device)
         embeddings = self.embeddings(pad_ids)
 
-        trackers = [NextTokens(self.vocab_ext) for _ in range(n_samples)]
+        trackers = [NextTokens(self.vocab_ext, sample_verb_frame_ids, self.limit_frame_ids)
+                    for sample_verb_frame_ids in verb_frame_ids]
 
         prob_history = []
         pred_history = []

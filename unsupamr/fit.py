@@ -45,5 +45,5 @@ if __name__ == "__main__":
         },
         run=False
     )
-
+    cli.datamodule.vocab_ext = cli.model.vocab_ext
     cli.trainer.fit(model=cli.model, datamodule=cli.datamodule, )
