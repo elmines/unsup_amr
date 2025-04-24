@@ -1,5 +1,5 @@
 # STL
-from typing import Tuple
+from typing import Tuple, Optional, Callable
 # 3rd Party
 import torch
 from transformers import T5ForConditionalGeneration
@@ -21,6 +21,7 @@ class T2A(torch.nn.Module):
                  temperature: float = DEFAULT_TEMP,
                  smoothing: float = DEFAULT_SMOOTHING,
                  max_iterations: int = DEFAULT_MAX_GRAPH_SIZE,
+                 logger: Optional[Callable[[str, float], None]] = None,
                  limit_frame_ids: bool = False):
         super().__init__()
         self.config = pretrained.config
@@ -36,11 +37,18 @@ class T2A(torch.nn.Module):
         self.smoothing = smoothing
         self.limit_frame_ids = limit_frame_ids
 
+        # Logging
+        self.logger = logger
+        self.all_concept_idxs = sorted(self.vocab_ext.concept_idxs)
+
         assert self.encoder.get_input_embeddings() is self.decoder.get_input_embeddings()
 
     def forward(self,
                 input_ids: torch.Tensor,
                 attention_mask: torch.Tensor, verb_frame_ids: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+
+        log_unmasked_concepts = torch.tensor(0, dtype=torch.long, device=input_ids.device)
+        log_nonzero_concepts = torch.tensor(0, dtype=torch.long, device=input_ids.device)
 
         n_samples = input_ids.shape[0]
 
@@ -88,6 +96,14 @@ class T2A(torch.nn.Module):
                 for (pred, tracker) in zip(preds, trackers):
                     tracker.nextTokens(int(pred))
                 is_finished = torch.all(torch.logical_or(preds == self.eos_token_id, preds == self.pad_token_id))
+
+                if self.logger and self.training:
+                    concept_masks = masks[:, self.all_concept_idxs]
+                    concept_probs = probs[:, self.all_concept_idxs]
+                    unmasked = concept_masks >= 0
+                    log_unmasked_concepts += torch.sum(unmasked)
+                    log_nonzero_concepts += torch.sum(torch.logical_and(unmasked, concept_probs > 0))
+
             new_embeddings = mult_embedding_lookup(probs, self.embeddings, smoothing=self.smoothing)
             embed_history.append(new_embeddings)
             embeddings = torch.unsqueeze(new_embeddings, dim=-2)
@@ -102,5 +118,13 @@ class T2A(torch.nn.Module):
         with torch.no_grad():
             pred_history = torch.stack(pred_history, dim=1)
             pred_attention_mask = pred_history == self.pad_token_id
+
+            if self.logger and self.training:
+                if log_unmasked_concepts > 0:
+                    self.logger("percent_possible_concepts", log_nonzero_concepts / log_unmasked_concepts)
+                else:
+                    self.logger("percent_possible_concepts", -1.)
+                pass
+
         return prob_history, embed_history, pred_attention_mask
 

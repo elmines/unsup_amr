@@ -23,7 +23,7 @@ METRICS_OUTPUT=${prefix}_metrics.txt
 
 module load conda
 conda activate unsup_amr
-python -m unsupamr.predict --output_path $PREDS_OUTPUT | tee $LOGGED_OUTPUT
+python -m unsupamr.predict --output_path $PREDS_OUTPUT $COMMON_ARGS | tee $LOGGED_OUTPUT
 
 conda activate unsup_amr_eval
 ./eval.sh $PREDS_OUTPUT | tee $METRICS_OUTPUT

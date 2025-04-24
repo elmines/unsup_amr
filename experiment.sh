@@ -26,15 +26,9 @@ VERSION=version_$TIMESTAMP
 module load conda
 conda activate unsup_amr
 
-python -m unsupamr.fit --trainer.logger.version $VERSION 
+python -m unsupamr.fit --trainer.logger.version $VERSION $COMMON_ARGS $TRAIN_ARGS
 
-echo "Not running the evaluation. Edit this script to actually run it."
-echo "Do not run the evaluation until you're done playing with the hyperparameters."
-echo "If you use the AMR evaluation set to help tune your hyperparameters, that's cheating."
-echo "Once you're ready to do a real experiment, comment out the 'exit' statement in the script."
-exit 0
-
-python -m unsupamr.predict --model.version $VERSION --output_path $PREDS_OUTPUT | tee $LOGGED_OUTPUT
+python -m unsupamr.predict --model.version $VERSION --output_path $PREDS_OUTPUT $COMMON_ARGS | tee $LOGGED_OUTPUT
 
 conda activate unsup_amr_eval
 ./eval.sh $PREDS_OUTPUT | tee $METRICS_OUTPUT
