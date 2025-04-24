@@ -17,6 +17,7 @@ dependencies:
   - sentencepiece
 
   - plotly
+  - nbformat>=4.2.0
 
   # Need this for jupyter notebooks
   - ipykernel

@@ -18,3 +18,5 @@ amr_data/
 
 *.txt
 !propbank-amr-frame-arg-descr.txt
+
+*.png
