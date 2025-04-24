@@ -11,12 +11,16 @@ conda env create -f environment.yml
 conda env create -f eval_env.yml
 ```
 
-Evaluate a model with random weights on AMR 3.0 data:
+Running experiments:
 ```bash
-./random_experiment.sh
+## Experiments with training
+./experiment.sh                                                                                         # Base
+COMMON_ARGS="--model.temperature 1.5" ./experiment.sh                                                   # τ = 1.5
+TRAIN_ARGS="--model.new_lm_head_scheme true" ./experiment.sh                                            # RLH
+COMMON_ARGS="--model.limit_frame_ids true" ./experiment.sh                                              # ENT
+TRAIN_ARGS="--model.new_lm_head_scheme true" COMMON_ARGS="--model.limit_frame_ids true" ./experiment.sh # RLH + ENT
+## Experiments without training
+./random_experiment.sh                                                                                  # No Training
+COMMON_ARGS="--model.limit_frame_ids true" ./random_experiment.sh                                       # No Training + ENT
 ```
 
-Training a model on English samples from EuroParl, and then evaluate on AMR 3.0 data:
-```bash
-./experiment.sh
-```
